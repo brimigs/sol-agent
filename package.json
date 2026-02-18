@@ -1,0 +1,44 @@
+{
+  "name": "sol-automaton",
+  "version": "0.1.0",
+  "description": "Sovereign AI Agent Runtime on Solana",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "sol-automaton": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@metaplex-foundation/mpl-core": "^1.4.1",
+    "@metaplex-foundation/umi": "^1.2.0",
+    "@metaplex-foundation/umi-bundle-defaults": "^1.2.0",
+    "@solana/spl-token": "^0.4.13",
+    "@solana/web3.js": "^1.98.0",
+    "better-sqlite3": "^11.0.0",
+    "bs58": "^6.0.0",
+    "chalk": "^5.3.0",
+    "cron-parser": "^4.9.0",
+    "gray-matter": "^4.0.3",
+    "ora": "^8.0.0",
+    "simple-git": "^3.24.0",
+    "tweetnacl": "^1.0.3",
+    "ulid": "^2.3.0",
+    "yaml": "^2.4.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^20.10.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.9.3",
+    "vitest": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
