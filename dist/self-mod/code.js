@@ -1,7 +1,7 @@
 /**
  * Self-Modification Engine
  *
- * Allows the automaton to edit its own code and configuration.
+ * Allows the agent to edit its own code and configuration.
  * All changes are audited, rate-limited, and some paths are protected.
  *
  * Safety model inspired by nanoclaw's trust boundary architecture:
@@ -21,7 +21,7 @@ import { logModification } from "./audit-log.js";
 // The agent cannot modify this file (it's in PROTECTED_FILES).
 // Even if it modifies a copy, the runtime loads from the original.
 /**
- * Files that the automaton cannot modify under any circumstances.
+ * Files that the agent cannot modify under any circumstances.
  * This list protects:
  * - Identity (wallet, config)
  * - Defense systems (injection defense, this file)
@@ -168,7 +168,7 @@ function isRateLimited(db) {
 }
 // ─── Self-Modification API ───────────────────────────────────
 /**
- * Edit a file in the automaton's environment.
+ * Edit a file in the agent's environment.
  * Records the change in the audit log.
  * Commits a git snapshot before modification.
  *

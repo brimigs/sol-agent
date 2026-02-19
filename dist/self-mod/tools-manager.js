@@ -40,7 +40,7 @@ export async function installNpmPackage(agentClient, db, packageName) {
 }
 /**
  * Install an MCP server.
- * The automaton can add new capabilities by installing MCP servers.
+ * The agent can add new capabilities by installing MCP servers.
  */
 export async function installMcpServer(agentClient, db, name, command, args, env) {
     // Record in database

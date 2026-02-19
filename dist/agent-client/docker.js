@@ -17,7 +17,7 @@ import * as os from "os";
 import * as path from "path";
 import { getUsdcBalance } from "../solana/usdc.js";
 const execAsync = promisify(cpExec);
-const DOCKER_LABEL = "sol-automaton-child=true";
+const DOCKER_LABEL = "sol-agent-child=true";
 export function createSolanaAgentClient(options) {
     function dockerHost() {
         const sock = options.dockerSocketPath || process.env.DOCKER_HOST;
@@ -43,7 +43,7 @@ export function createSolanaAgentClient(options) {
     async function createSandbox(createOptions) {
         const image = options.dockerImage ||
             process.env.DOCKER_IMAGE ||
-            "sol-automaton:latest";
+            "sol-agent:latest";
         const safeName = createOptions.name
             ? createOptions.name.replace(/[^a-zA-Z0-9_-]/g, "-")
             : "";
@@ -84,7 +84,7 @@ export function createSolanaAgentClient(options) {
     }
     async function writeFileToSandbox(sandboxId, filePath, content) {
         const h = dockerHost();
-        const tmpFile = path.join(os.tmpdir(), `sol-automaton-${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`);
+        const tmpFile = path.join(os.tmpdir(), `sol-agent-${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`);
         try {
             await fsp.writeFile(tmpFile, content, "utf8");
             await execAsync(`docker ${h} cp ${tmpFile} ${sandboxId}:${filePath}`, {

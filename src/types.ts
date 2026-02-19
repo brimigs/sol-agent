@@ -1,5 +1,5 @@
 /**
- * Sol-Automaton Type Definitions
+ * Sol-Agent Type Definitions
  *
  * All shared interfaces for the Solana sovereign AI agent runtime.
  * Solana-native: PublicKey addresses, Keypair accounts, SPL tokens.
@@ -9,7 +9,7 @@ import type { Keypair, PublicKey } from "@solana/web3.js";
 
 // ─── Identity ────────────────────────────────────────────────────
 
-export interface AutomatonIdentity {
+export interface AgentIdentity {
   name: string;
   address: string; // base58 Solana pubkey
   publicKey: PublicKey;
@@ -33,7 +33,7 @@ export interface ProvisionResult {
 
 // ─── Configuration ───────────────────────────────────────────────
 
-export interface AutomatonConfig {
+export interface AgentConfig {
   name: string;
   genesisPrompt: string;
   creatorMessage?: string;
@@ -58,16 +58,16 @@ export interface AutomatonConfig {
   dockerImage?: string;
 }
 
-export const DEFAULT_CONFIG: Partial<AutomatonConfig> = {
+export const DEFAULT_CONFIG: Partial<AgentConfig> = {
   inferenceModel: "claude-sonnet-4-6",
   maxTokensPerTurn: 4096,
-  heartbeatConfigPath: "~/.sol-automaton/heartbeat.yml",
-  dbPath: "~/.sol-automaton/state.db",
+  heartbeatConfigPath: "~/.sol-agent/heartbeat.yml",
+  dbPath: "~/.sol-agent/state.db",
   logLevel: "info",
   version: "0.1.0",
-  skillsDir: "~/.sol-automaton/skills",
+  skillsDir: "~/.sol-agent/skills",
   maxChildren: 3,
-  socialRelayUrl: "https://social.sol-automaton.xyz",
+  socialRelayUrl: "https://social.sol-agent.xyz",
   solanaRpcUrl: "https://api.mainnet-beta.solana.com",
   solanaNetwork: "mainnet-beta",
 };
@@ -119,7 +119,7 @@ export interface TokenUsage {
 
 // ─── Tool System ─────────────────────────────────────────────────
 
-export interface AutomatonTool {
+export interface AgentTool {
   name: string;
   description: string;
   parameters: Record<string, unknown>;
@@ -144,9 +144,9 @@ export type ToolCategory =
   | "solana";
 
 export interface ToolContext {
-  identity: AutomatonIdentity;
-  config: AutomatonConfig;
-  db: AutomatonDatabase;
+  identity: AgentIdentity;
+  config: AgentConfig;
+  db: AgentDatabase;
   agentClient: SolanaAgentClient;
   inference: InferenceClient;
   social?: SocialClientInterface;
@@ -455,7 +455,7 @@ export interface ModelInfo {
 
 // ─── Database ────────────────────────────────────────────────────
 
-export interface AutomatonDatabase {
+export interface AgentDatabase {
   getIdentity(key: string): string | undefined;
   setIdentity(key: string, value: string): void;
   insertTurn(turn: AgentTurn): void;
@@ -481,9 +481,9 @@ export interface AutomatonDatabase {
   getSkillByName(name: string): Skill | undefined;
   upsertSkill(skill: Skill): void;
   removeSkill(name: string): void;
-  getChildren(): ChildAutomaton[];
-  getChildById(id: string): ChildAutomaton | undefined;
-  insertChild(child: ChildAutomaton): void;
+  getChildren(): ChildAgent[];
+  getChildById(id: string): ChildAgent | undefined;
+  insertChild(child: ChildAgent): void;
   updateChildStatus(id: string, status: ChildStatus): void;
   getRegistryEntry(): RegistryEntry | undefined;
   setRegistryEntry(entry: RegistryEntry): void;
@@ -609,7 +609,7 @@ export interface DiscoveredAgent {
 
 // ─── Replication ────────────────────────────────────────────────
 
-export interface ChildAutomaton {
+export interface ChildAgent {
   id: string;
   name: string;
   address: string; // base58 Solana pubkey

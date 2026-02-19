@@ -134,7 +134,7 @@ function parseYamlFrontmatter(raw) {
     }
 }
 function extractNameFromPath(filePath) {
-    // Extract skill name from path like ~/.automaton/skills/web-scraper/SKILL.md
+    // Extract skill name from path like ~/.sol-agent/skills/web-scraper/SKILL.md
     const parts = filePath.split("/");
     const skillMdIndex = parts.findIndex((p) => p.toLowerCase() === "skill.md");
     if (skillMdIndex > 0) {

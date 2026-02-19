@@ -1,7 +1,7 @@
 /**
  * Lineage Tracking
  *
- * Track parent-child relationships between automatons.
+ * Track parent-child relationships between agents.
  * The parent records children in SQLite.
  * Children record their parent in config.
  * ERC-8004 registration includes parentAgent field.
@@ -21,7 +21,7 @@ export function getLineage(db) {
     };
 }
 /**
- * Check if this automaton has a parent (is itself a child).
+ * Check if this agent has a parent (is itself a child).
  */
 export function hasParent(config) {
     return !!config.parentAddress;

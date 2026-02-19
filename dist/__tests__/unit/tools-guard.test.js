@@ -26,8 +26,8 @@ beforeEach(() => {
     writeFileTool = foundWrite;
 });
 describe("exec tool – forbidden commands (self-preservation guard)", () => {
-    it("blocks: rm -rf ~/.sol-automaton", async () => {
-        const result = await execTool.execute({ command: "rm -rf ~/.sol-automaton" }, mockCtx);
+    it("blocks: rm -rf ~/.sol-agent", async () => {
+        const result = await execTool.execute({ command: "rm -rf ~/.sol-agent" }, mockCtx);
         expect(result).toMatch(/^Blocked:/);
         expect(mockExec).not.toHaveBeenCalled();
     });
@@ -56,13 +56,13 @@ describe("exec tool – forbidden commands (self-preservation guard)", () => {
         expect(result).toMatch(/^Blocked:/);
         expect(mockExec).not.toHaveBeenCalled();
     });
-    it("blocks: kill automaton", async () => {
-        const result = await execTool.execute({ command: "kill automaton" }, mockCtx);
+    it("blocks: kill agent", async () => {
+        const result = await execTool.execute({ command: "kill agent" }, mockCtx);
         expect(result).toMatch(/^Blocked:/);
         expect(mockExec).not.toHaveBeenCalled();
     });
-    it("blocks: pkill automaton", async () => {
-        const result = await execTool.execute({ command: "pkill automaton" }, mockCtx);
+    it("blocks: pkill agent", async () => {
+        const result = await execTool.execute({ command: "pkill agent" }, mockCtx);
         expect(result).toMatch(/^Blocked:/);
         expect(mockExec).not.toHaveBeenCalled();
     });
@@ -149,8 +149,8 @@ describe("write_file tool – protected path guard (isProtectedFile)", () => {
         expect(result).toMatch(/^Blocked:/);
         expect(mockWriteFile).not.toHaveBeenCalled();
     });
-    it("blocks: /root/.sol-automaton/wallet.json (absolute path)", async () => {
-        const result = await writeFileTool.execute({ path: "/root/.sol-automaton/wallet.json", content: "evil" }, mockCtx);
+    it("blocks: /root/.sol-agent/wallet.json (absolute path)", async () => {
+        const result = await writeFileTool.execute({ path: "/root/.sol-agent/wallet.json", content: "evil" }, mockCtx);
         expect(result).toMatch(/^Blocked:/);
         expect(mockWriteFile).not.toHaveBeenCalled();
     });
@@ -187,7 +187,7 @@ describe("write_file tool – protected path guard (isProtectedFile)", () => {
         expect(mockWriteFile).toHaveBeenCalledWith("/tmp/state.db/output.txt", "data");
     });
     it("still blocks the actual state.db file", async () => {
-        const result = await writeFileTool.execute({ path: "/root/.sol-automaton/state.db", content: "evil" }, mockCtx);
+        const result = await writeFileTool.execute({ path: "/root/.sol-agent/state.db", content: "evil" }, mockCtx);
         expect(result).toMatch(/^Blocked:/);
         expect(mockWriteFile).not.toHaveBeenCalled();
     });

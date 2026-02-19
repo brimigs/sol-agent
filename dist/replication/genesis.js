@@ -1,7 +1,7 @@
 /**
  * Genesis
  *
- * Generate genesis configuration for child automatons from parent state.
+ * Generate genesis configuration for child agents from parent state.
  * The genesis config defines who the child is and what it should do.
  */
 /**

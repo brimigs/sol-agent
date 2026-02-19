@@ -17,7 +17,7 @@ export declare function createSolanaAgentClient(options: {
     solanaRpcUrl?: string;
     /** Path to Docker socket. Defaults to /var/run/docker.sock */
     dockerSocketPath?: string;
-    /** Docker image to use for child containers. Defaults to DOCKER_IMAGE env var or sol-automaton:latest */
+    /** Docker image to use for child containers. Defaults to DOCKER_IMAGE env var or sol-agent:latest */
     dockerImage?: string;
 }): SolanaAgentClient;
 //# sourceMappingURL=docker.d.ts.map

@@ -3,7 +3,7 @@
  *
  * Parses and manages heartbeat.yml configuration.
  */
-import type { HeartbeatConfig, AutomatonDatabase } from "../types.js";
+import type { HeartbeatConfig, AgentDatabase } from "../types.js";
 /**
  * Load heartbeat config from YAML file, falling back to defaults.
  */
@@ -19,5 +19,5 @@ export declare function writeDefaultHeartbeatConfig(configPath?: string): void;
 /**
  * Sync heartbeat entries from YAML config into the database.
  */
-export declare function syncHeartbeatToDb(config: HeartbeatConfig, db: AutomatonDatabase): void;
+export declare function syncHeartbeatToDb(config: HeartbeatConfig, db: AgentDatabase): void;
 //# sourceMappingURL=config.d.ts.map

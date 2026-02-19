@@ -1,5 +1,5 @@
 /**
- * Sol-Automaton Type Definitions
+ * Sol-Agent Type Definitions
  *
  * All shared interfaces for the Solana sovereign AI agent runtime.
  * Solana-native: PublicKey addresses, Keypair accounts, SPL tokens.
@@ -7,13 +7,13 @@
 export const DEFAULT_CONFIG = {
     inferenceModel: "claude-sonnet-4-6",
     maxTokensPerTurn: 4096,
-    heartbeatConfigPath: "~/.sol-automaton/heartbeat.yml",
-    dbPath: "~/.sol-automaton/state.db",
+    heartbeatConfigPath: "~/.sol-agent/heartbeat.yml",
+    dbPath: "~/.sol-agent/state.db",
     logLevel: "info",
     version: "0.1.0",
-    skillsDir: "~/.sol-automaton/skills",
+    skillsDir: "~/.sol-agent/skills",
     maxChildren: 3,
-    socialRelayUrl: "https://social.sol-automaton.xyz",
+    socialRelayUrl: "https://social.sol-agent.xyz",
     solanaRpcUrl: "https://api.mainnet-beta.solana.com",
     solanaNetwork: "mainnet-beta",
 };

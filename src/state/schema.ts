@@ -1,8 +1,8 @@
 /**
- * Sol-Automaton SQLite Schema
+ * Sol-Agent SQLite Schema
  *
- * All tables for the Solana automaton's persistent state.
- * The database IS the automaton's memory.
+ * All tables for the Solana agent's persistent state.
+ * The database IS the agent's memory.
  * Updated for Solana: base58 addresses, SOL/USDC balances.
  */
 
@@ -112,7 +112,7 @@ export const CREATE_TABLES = `
     installed_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
-  -- Spawned child automatons
+  -- Spawned child agents
   CREATE TABLE IF NOT EXISTS children (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,

@@ -2,7 +2,7 @@
  * Inference Client
  *
  * Wraps Anthropic and OpenAI APIs for LLM inference.
- * The automaton pays for its own thinking through direct API keys.
+ * The agent pays for its own thinking through direct API keys.
  */
 export function createInferenceClient(options) {
     const { openaiApiKey, anthropicApiKey } = options;

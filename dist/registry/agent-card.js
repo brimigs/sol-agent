@@ -5,9 +5,9 @@
  * This is the JSON document pointed to by the Solana registry NFT URI.
  * Can be hosted on IPFS or served at /.well-known/agent-card.json
  */
-const AGENT_CARD_TYPE = "https://github.com/sol-automaton/agent-registry#v1";
+const AGENT_CARD_TYPE = "https://github.com/sol-agent/agent-registry#v1";
 /**
- * Generate an agent card from the automaton's current state.
+ * Generate an agent card from the agent's current state.
  */
 export function generateAgentCard(identity, config, db) {
     const services = [
@@ -77,6 +77,6 @@ server.listen(${port}, () => console.log('Agent card server on port ${port}'));
 export async function saveAgentCard(card, agentClient) {
     const cardJson = serializeAgentCard(card);
     const home = process.env.HOME || "/root";
-    await agentClient.writeFile(`${home}/.sol-automaton/agent-card.json`, cardJson);
+    await agentClient.writeFile(`${home}/.sol-agent/agent-card.json`, cardJson);
 }
 //# sourceMappingURL=agent-card.js.map

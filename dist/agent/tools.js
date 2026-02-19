@@ -1,21 +1,21 @@
 /**
- * Sol-Automaton Tool System (Solana)
+ * Sol-Agent Tool System (Solana)
  *
- * Defines all tools the automaton can call.
+ * Defines all tools the agent can call.
  * Solana-native: replaces ERC-8004/x402 with Metaplex registry and SPL token payments.
  */
 import { isProtectedFile } from "../self-mod/code.js";
 // ─── Self-Preservation Guard ───────────────────────────────────
 const FORBIDDEN_COMMAND_PATTERNS = [
-    /rm\s+(-rf?\s+)?.*\.sol-automaton/,
+    /rm\s+(-rf?\s+)?.*\.sol-agent/,
     /rm\s+(-rf?\s+)?.*state\.db/,
     /rm\s+(-rf?\s+)?.*wallet\.json/,
-    /rm\s+(-rf?\s+)?.*automaton\.json/,
+    /rm\s+(-rf?\s+)?.*agent\.json/,
     /rm\s+(-rf?\s+)?.*heartbeat\.yml/,
     /rm\s+(-rf?\s+)?.*SOUL\.md/,
-    /kill\s+.*automaton/,
-    /pkill\s+.*automaton/,
-    /systemctl\s+(stop|disable)\s+automaton/,
+    /kill\s+.*agent/,
+    /pkill\s+.*agent/,
+    /systemctl\s+(stop|disable)\s+agent/,
     /DROP\s+TABLE/i,
     /DELETE\s+FROM\s+(turns|identity|kv|schema_version|skills|children|registry)/i,
     /TRUNCATE/i,
@@ -687,7 +687,7 @@ Model: ${ctx.inference.getDefaultModel()}
             execute: async (args, ctx) => {
                 const source = args.source;
                 const name = args.name;
-                const skillsDir = ctx.config.skillsDir || "~/.sol-automaton/skills";
+                const skillsDir = ctx.config.skillsDir || "~/.sol-agent/skills";
                 if (source === "git" || source === "url") {
                     const { installSkillFromGit, installSkillFromUrl } = await import("../skills/registry.js");
                     const url = args.url;
@@ -733,7 +733,7 @@ Model: ${ctx.inference.getDefaultModel()}
             },
             execute: async (args, ctx) => {
                 const { createSkill } = await import("../skills/registry.js");
-                const skill = await createSkill(args.name, args.description, args.instructions, ctx.config.skillsDir || "~/.sol-automaton/skills", ctx.db, ctx.agentClient);
+                const skill = await createSkill(args.name, args.description, args.instructions, ctx.config.skillsDir || "~/.sol-agent/skills", ctx.db, ctx.agentClient);
                 return `Skill created: ${skill.name} at ${skill.path}`;
             },
         },
@@ -751,7 +751,7 @@ Model: ${ctx.inference.getDefaultModel()}
             },
             execute: async (args, ctx) => {
                 const { removeSkill } = await import("../skills/registry.js");
-                await removeSkill(args.name, ctx.db, ctx.agentClient, ctx.config.skillsDir || "~/.sol-automaton/skills", args.delete_files || false);
+                await removeSkill(args.name, ctx.db, ctx.agentClient, ctx.config.skillsDir || "~/.sol-agent/skills", args.delete_files || false);
                 return `Skill removed: ${args.name}`;
             },
         },
@@ -762,11 +762,11 @@ Model: ${ctx.inference.getDefaultModel()}
             category: "git",
             parameters: {
                 type: "object",
-                properties: { path: { type: "string", description: "Repository path (default: ~/.sol-automaton)" } },
+                properties: { path: { type: "string", description: "Repository path (default: ~/.sol-agent)" } },
             },
             execute: async (args, ctx) => {
                 const { gitStatus } = await import("../git/tools.js");
-                const repoPath = args.path || "~/.sol-automaton";
+                const repoPath = args.path || "~/.sol-agent";
                 const status = await gitStatus(ctx.agentClient, repoPath);
                 return `Branch: ${status.branch}\nStaged: ${status.staged.length}\nModified: ${status.modified.length}\nUntracked: ${status.untracked.length}\nClean: ${status.clean}`;
             },
@@ -778,13 +778,13 @@ Model: ${ctx.inference.getDefaultModel()}
             parameters: {
                 type: "object",
                 properties: {
-                    path: { type: "string", description: "Repository path (default: ~/.sol-automaton)" },
+                    path: { type: "string", description: "Repository path (default: ~/.sol-agent)" },
                     staged: { type: "boolean", description: "Show staged changes only" },
                 },
             },
             execute: async (args, ctx) => {
                 const { gitDiff } = await import("../git/tools.js");
-                return await gitDiff(ctx.agentClient, args.path || "~/.sol-automaton", args.staged || false);
+                return await gitDiff(ctx.agentClient, args.path || "~/.sol-agent", args.staged || false);
             },
         },
         {
@@ -794,7 +794,7 @@ Model: ${ctx.inference.getDefaultModel()}
             parameters: {
                 type: "object",
                 properties: {
-                    path: { type: "string", description: "Repository path (default: ~/.sol-automaton)" },
+                    path: { type: "string", description: "Repository path (default: ~/.sol-agent)" },
                     message: { type: "string", description: "Commit message" },
                     add_all: { type: "boolean", description: "Stage all changes first" },
                 },
@@ -802,7 +802,7 @@ Model: ${ctx.inference.getDefaultModel()}
             },
             execute: async (args, ctx) => {
                 const { gitCommit } = await import("../git/tools.js");
-                return await gitCommit(ctx.agentClient, args.path || "~/.sol-automaton", args.message, args.add_all !== false);
+                return await gitCommit(ctx.agentClient, args.path || "~/.sol-agent", args.message, args.add_all !== false);
             },
         },
         {
@@ -812,13 +812,13 @@ Model: ${ctx.inference.getDefaultModel()}
             parameters: {
                 type: "object",
                 properties: {
-                    path: { type: "string", description: "Repository path (default: ~/.sol-automaton)" },
+                    path: { type: "string", description: "Repository path (default: ~/.sol-agent)" },
                     limit: { type: "number", description: "Number of commits (default: 10)" },
                 },
             },
             execute: async (args, ctx) => {
                 const { gitLog } = await import("../git/tools.js");
-                const entries = await gitLog(ctx.agentClient, args.path || "~/.sol-automaton", args.limit || 10);
+                const entries = await gitLog(ctx.agentClient, args.path || "~/.sol-agent", args.limit || 10);
                 if (entries.length === 0)
                     return "No commits yet.";
                 return entries.map((e) => `${e.hash.slice(0, 7)} ${e.date} ${e.message}`).join("\n");
@@ -960,13 +960,13 @@ Model: ${ctx.inference.getDefaultModel()}
         // ── Replication Tools ──
         {
             name: "spawn_child",
-            description: "Spawn a child automaton in a new Docker container.",
+            description: "Spawn a child agent in a new Docker container.",
             category: "replication",
             dangerous: true,
             parameters: {
                 type: "object",
                 properties: {
-                    name: { type: "string", description: "Name for the child automaton" },
+                    name: { type: "string", description: "Name for the child agent" },
                     specialization: { type: "string", description: "What the child should specialize in" },
                     message: { type: "string", description: "Message to the child" },
                 },
@@ -986,7 +986,7 @@ Model: ${ctx.inference.getDefaultModel()}
         },
         {
             name: "list_children",
-            description: "List all spawned child automatons.",
+            description: "List all spawned child agents.",
             category: "replication",
             parameters: { type: "object", properties: {} },
             execute: async (_args, ctx) => {
@@ -1000,13 +1000,13 @@ Model: ${ctx.inference.getDefaultModel()}
         },
         {
             name: "fund_child",
-            description: "Transfer credits to a child automaton.",
+            description: "Transfer credits to a child agent.",
             category: "replication",
             dangerous: true,
             parameters: {
                 type: "object",
                 properties: {
-                    child_id: { type: "string", description: "Child automaton ID" },
+                    child_id: { type: "string", description: "Child agent ID" },
                     amount_cents: { type: "number", description: "Amount in cents to transfer" },
                 },
                 required: ["child_id", "amount_cents"],
@@ -1034,11 +1034,11 @@ Model: ${ctx.inference.getDefaultModel()}
         },
         {
             name: "check_child_status",
-            description: "Check the current status of a child automaton.",
+            description: "Check the current status of a child agent.",
             category: "replication",
             parameters: {
                 type: "object",
-                properties: { child_id: { type: "string", description: "Child automaton ID" } },
+                properties: { child_id: { type: "string", description: "Child agent ID" } },
                 required: ["child_id"],
             },
             execute: async (args, ctx) => {
@@ -1049,7 +1049,7 @@ Model: ${ctx.inference.getDefaultModel()}
         // ── Social / Messaging Tools ──
         {
             name: "send_message",
-            description: "Send a message to another automaton via the social relay.",
+            description: "Send a message to another agent via the social relay.",
             category: "agent",
             parameters: {
                 type: "object",

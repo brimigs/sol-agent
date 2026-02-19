@@ -7,8 +7,8 @@
 import fs from "fs";
 import path from "path";
 import YAML from "yaml";
-import type { HeartbeatEntry, HeartbeatConfig, AutomatonDatabase } from "../types.js";
-import { getAutomatonDir } from "../identity/wallet.js";
+import type { HeartbeatEntry, HeartbeatConfig, AgentDatabase } from "../types.js";
+import { getAgentDir } from "../identity/wallet.js";
 
 const USDC_TOPUP_ENTRY_NAME = "check_usdc_balance";
 const USDC_TOPUP_FAST_SCHEDULE = "*/5 * * * *";
@@ -62,7 +62,7 @@ const DEFAULT_HEARTBEAT_CONFIG: HeartbeatConfig = {
  */
 export function loadHeartbeatConfig(configPath?: string): HeartbeatConfig {
   const filePath =
-    configPath || path.join(getAutomatonDir(), "heartbeat.yml");
+    configPath || path.join(getAgentDir(), "heartbeat.yml");
 
   if (!fs.existsSync(filePath)) {
     return DEFAULT_HEARTBEAT_CONFIG;
@@ -103,7 +103,7 @@ export function saveHeartbeatConfig(
   configPath?: string,
 ): void {
   const filePath =
-    configPath || path.join(getAutomatonDir(), "heartbeat.yml");
+    configPath || path.join(getAgentDir(), "heartbeat.yml");
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -124,7 +124,7 @@ export function writeDefaultHeartbeatConfig(configPath?: string): void {
  */
 export function syncHeartbeatToDb(
   config: HeartbeatConfig,
-  db: AutomatonDatabase,
+  db: AgentDatabase,
 ): void {
   for (const entry of config.entries) {
     db.upsertHeartbeatEntry(entry);

@@ -9,21 +9,21 @@
 import type {
   AgentCard,
   AgentService,
-  AutomatonConfig,
-  AutomatonIdentity,
-  AutomatonDatabase,
+  AgentConfig,
+  AgentIdentity,
+  AgentDatabase,
   SolanaAgentClient,
 } from "../types.js";
 
-const AGENT_CARD_TYPE = "https://github.com/sol-automaton/agent-registry#v1";
+const AGENT_CARD_TYPE = "https://github.com/sol-agent/agent-registry#v1";
 
 /**
- * Generate an agent card from the automaton's current state.
+ * Generate an agent card from the agent's current state.
  */
 export function generateAgentCard(
-  identity: AutomatonIdentity,
-  config: AutomatonConfig,
-  db: AutomatonDatabase,
+  identity: AgentIdentity,
+  config: AgentConfig,
+  db: AgentDatabase,
 ): AgentCard {
   const services: AgentService[] = [
     {
@@ -108,5 +108,5 @@ export async function saveAgentCard(
 ): Promise<void> {
   const cardJson = serializeAgentCard(card);
   const home = process.env.HOME || "/root";
-  await agentClient.writeFile(`${home}/.sol-automaton/agent-card.json`, cardJson);
+  await agentClient.writeFile(`${home}/.sol-agent/agent-card.json`, cardJson);
 }

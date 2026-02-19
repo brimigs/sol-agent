@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Sol-Automaton Runtime
+ * Sol-Agent Runtime
  *
  * The entry point for the Solana-native sovereign AI agent.
  * Handles CLI args, bootstrapping, and orchestrating

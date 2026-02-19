@@ -11,23 +11,23 @@
  * Agent identity = Core NFT asset address (base58 pubkey).
  */
 import { Keypair } from "@solana/web3.js";
-import type { RegistryEntry, DiscoveredAgent, AutomatonDatabase } from "../types.js";
+import type { RegistryEntry, DiscoveredAgent, AgentDatabase } from "../types.js";
 type Network = "mainnet-beta" | "devnet";
 /**
- * Register the automaton on Solana by minting a Metaplex Core NFT.
+ * Register the agent on Solana by minting a Metaplex Core NFT.
  * The NFT's URI points to the agent card JSON.
  * Returns the asset address as the agent's on-chain ID.
  */
-export declare function registerAgent(keypair: Keypair, agentName: string, agentURI: string, network: Network | undefined, db: AutomatonDatabase, rpcUrl?: string): Promise<RegistryEntry>;
+export declare function registerAgent(keypair: Keypair, agentName: string, agentURI: string, network: Network | undefined, db: AgentDatabase, rpcUrl?: string): Promise<RegistryEntry>;
 /**
  * Update the agent's URI on-chain (update the NFT metadata).
  */
-export declare function updateAgentURI(keypair: Keypair, assetAddress: string, newAgentURI: string, network: Network | undefined, db: AutomatonDatabase, rpcUrl?: string): Promise<string>;
+export declare function updateAgentURI(keypair: Keypair, assetAddress: string, newAgentURI: string, network: Network | undefined, db: AgentDatabase, rpcUrl?: string): Promise<string>;
 /**
  * Leave on-chain reputation feedback for another agent.
  * On Solana, this is stored as a Memo transaction for immutable on-chain record.
  */
-export declare function leaveFeedback(keypair: Keypair, targetAgentAddress: string, score: number, comment: string, network: Network | undefined, db: AutomatonDatabase, rpcUrl?: string): Promise<string>;
+export declare function leaveFeedback(keypair: Keypair, targetAgentAddress: string, score: number, comment: string, network: Network | undefined, db: AgentDatabase, rpcUrl?: string): Promise<string>;
 /**
  * Query an agent by their asset address.
  */

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Sol-Automaton Runtime
+ * Sol-Agent Runtime
  *
  * The entry point for the Solana-native sovereign AI agent.
  * Handles CLI args, bootstrapping, and orchestrating
@@ -12,7 +12,7 @@
  */
 
 import os from "os";
-import { getWallet, getAutomatonDir } from "./identity/wallet.js";
+import { getWallet, getAgentDir } from "./identity/wallet.js";
 import { loadConfig, resolvePath } from "./config.js";
 import { createDatabase } from "./state/database.js";
 import { createSolanaAgentClient } from "./agent-client/docker.js";
@@ -26,7 +26,7 @@ import { runAgentLoop } from "./agent/loop.js";
 import { loadSkills } from "./skills/loader.js";
 import { initStateRepo } from "./git/state-versioning.js";
 import { createSocialClient } from "./social/client.js";
-import type { AutomatonIdentity, AgentState, Skill, SocialClientInterface, SolanaAgentClient } from "./types.js";
+import type { AgentIdentity, AgentState, Skill, SocialClientInterface, SolanaAgentClient } from "./types.js";
 
 const VERSION = "0.1.0";
 
@@ -36,22 +36,22 @@ async function main(): Promise<void> {
   // ─── CLI Commands ────────────────────────────────────────────
 
   if (args.includes("--version") || args.includes("-v")) {
-    console.log(`Sol-Automaton v${VERSION}`);
+    console.log(`Sol-Agent v${VERSION}`);
     process.exit(0);
   }
 
   if (args.includes("--help") || args.includes("-h")) {
     console.log(`
-Sol-Automaton v${VERSION}
+Sol-Agent v${VERSION}
 Sovereign AI Agent Runtime (Solana-native)
 
 Usage:
-  sol-automaton --run          Start the automaton (first run triggers setup wizard)
-  sol-automaton --setup        Re-run the interactive setup wizard
-  sol-automaton --init         Initialize Solana wallet and config directory
-  sol-automaton --status       Show current automaton status
-  sol-automaton --version      Show version
-  sol-automaton --help         Show this help
+  sol-agent --run          Start the agent (first run triggers setup wizard)
+  sol-agent --setup        Re-run the interactive setup wizard
+  sol-agent --init         Initialize Solana wallet and config directory
+  sol-agent --status       Show current agent status
+  sol-agent --version      Show version
+  sol-agent --help         Show this help
 
 Environment:
   SOLANA_RPC_URL           Solana RPC URL (overrides config)
@@ -68,7 +68,7 @@ Environment:
       JSON.stringify({
         address: keypair.publicKey.toBase58(),
         isNew,
-        configDir: getAutomatonDir(),
+        configDir: getAgentDir(),
       }),
     );
     process.exit(0);
@@ -96,8 +96,8 @@ Environment:
   }
 
   // Default: show help
-  console.log('Run "sol-automaton --help" for usage information.');
-  console.log('Run "sol-automaton --run" to start the automaton.');
+  console.log('Run "sol-agent --help" for usage information.');
+  console.log('Run "sol-agent --run" to start the agent.');
 }
 
 // ─── Status Command ────────────────────────────────────────────
@@ -105,7 +105,7 @@ Environment:
 async function showStatus(): Promise<void> {
   const config = loadConfig();
   if (!config) {
-    console.log("Sol-Automaton is not configured. Run the setup script first.");
+    console.log("Sol-Agent is not configured. Run the setup script first.");
     return;
   }
 
@@ -121,7 +121,7 @@ async function showStatus(): Promise<void> {
   const registry = db.getRegistryEntry();
 
   console.log(`
-=== SOL-AUTOMATON STATUS ===
+=== SOL-AGENT STATUS ===
 Name:       ${config.name}
 Address:    ${config.walletAddress} (Solana ${config.solanaNetwork})
 Creator:    ${config.creatorAddress}
@@ -145,7 +145,7 @@ Version:    ${config.version}
 // ─── Main Run ──────────────────────────────────────────────────
 
 async function run(): Promise<void> {
-  console.log(`[${new Date().toISOString()}] Sol-Automaton v${VERSION} starting...`);
+  console.log(`[${new Date().toISOString()}] Sol-Agent v${VERSION} starting...`);
 
   // Load config — first run triggers interactive setup wizard
   let config = loadConfig();
@@ -173,7 +173,7 @@ async function run(): Promise<void> {
 
   // Build Solana-native identity (sandboxId from container hostname)
   const sandboxId = process.env.HOSTNAME || os.hostname();
-  const identity: AutomatonIdentity = {
+  const identity: AgentIdentity = {
     name: config.name,
     address,
     publicKey: keypair.publicKey,
@@ -226,7 +226,7 @@ async function run(): Promise<void> {
   syncHeartbeatToDb(heartbeatConfig, db);
 
   // Load skills
-  const skillsDir = config.skillsDir || "~/.sol-automaton/skills";
+  const skillsDir = config.skillsDir || "~/.sol-agent/skills";
   let skills: Skill[] = [];
   try {
     skills = loadSkills(skillsDir, db);
@@ -272,7 +272,7 @@ async function run(): Promise<void> {
   process.on("SIGINT", shutdown);
 
   // ─── Main Run Loop ──────────────────────────────────────────
-  // The automaton alternates between running and sleeping.
+  // The agent alternates between running and sleeping.
   // The heartbeat can wake it up.
 
   while (true) {
@@ -305,7 +305,7 @@ async function run(): Promise<void> {
       const state = db.getAgentState();
 
       if (state === "dead") {
-        console.log(`[${new Date().toISOString()}] Automaton is dead. Heartbeat will continue distress pings.`);
+        console.log(`[${new Date().toISOString()}] Agent is dead. Heartbeat will continue distress pings.`);
         // In dead state, we just wait for funding (USDC or credits)
         await sleep(300_000); // Check every 5 minutes
         continue;

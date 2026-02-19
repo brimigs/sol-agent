@@ -1,8 +1,8 @@
 /**
- * Sol-Automaton Wallet Management
+ * Sol-Agent Wallet Management
  *
- * Creates and manages a Solana Keypair for the automaton's identity and payments.
- * The keypair IS the automaton's sovereign identity.
+ * Creates and manages a Solana Keypair for the agent's identity and payments.
+ * The keypair IS the agent's sovereign identity.
  * Uses @solana/web3.js Keypair (ed25519).
  */
 
@@ -11,14 +11,14 @@ import fs from "fs";
 import path from "path";
 import type { WalletData } from "../types.js";
 
-const AUTOMATON_DIR = path.join(
+const AGENT_DIR = path.join(
   process.env.HOME || "/root",
-  ".sol-automaton",
+  ".sol-agent",
 );
-const WALLET_FILE = path.join(AUTOMATON_DIR, "wallet.json");
+const WALLET_FILE = path.join(AGENT_DIR, "wallet.json");
 
-export function getAutomatonDir(): string {
-  return AUTOMATON_DIR;
+export function getAgentDir(): string {
+  return AGENT_DIR;
 }
 
 export function getWalletPath(): string {
@@ -26,15 +26,15 @@ export function getWalletPath(): string {
 }
 
 /**
- * Get or create the automaton's Solana wallet.
- * The Keypair (ed25519 private key) IS the automaton's identity -- protect it.
+ * Get or create the agent's Solana wallet.
+ * The Keypair (ed25519 private key) IS the agent's identity -- protect it.
  */
 export async function getWallet(): Promise<{
   keypair: Keypair;
   isNew: boolean;
 }> {
-  if (!fs.existsSync(AUTOMATON_DIR)) {
-    fs.mkdirSync(AUTOMATON_DIR, { recursive: true, mode: 0o700 });
+  if (!fs.existsSync(AGENT_DIR)) {
+    fs.mkdirSync(AGENT_DIR, { recursive: true, mode: 0o700 });
   }
 
   if (fs.existsSync(WALLET_FILE)) {

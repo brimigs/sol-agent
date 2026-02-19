@@ -1,24 +1,24 @@
 /**
  * Lineage Tracking
  *
- * Track parent-child relationships between automatons.
+ * Track parent-child relationships between agents.
  * The parent records children in SQLite.
  * Children record their parent in config.
  * ERC-8004 registration includes parentAgent field.
  */
 
 import type {
-  AutomatonDatabase,
-  ChildAutomaton,
-  AutomatonConfig,
+  AgentDatabase,
+  ChildAgent,
+  AgentConfig,
   SolanaAgentClient,
 } from "../types.js";
 
 /**
  * Get the full lineage tree (parent -> children).
  */
-export function getLineage(db: AutomatonDatabase): {
-  children: ChildAutomaton[];
+export function getLineage(db: AgentDatabase): {
+  children: ChildAgent[];
   alive: number;
   dead: number;
   total: number;
@@ -38,9 +38,9 @@ export function getLineage(db: AutomatonDatabase): {
 }
 
 /**
- * Check if this automaton has a parent (is itself a child).
+ * Check if this agent has a parent (is itself a child).
  */
-export function hasParent(config: AutomatonConfig): boolean {
+export function hasParent(config: AgentConfig): boolean {
   return !!config.parentAddress;
 }
 
@@ -48,8 +48,8 @@ export function hasParent(config: AutomatonConfig): boolean {
  * Get a summary of the lineage for the system prompt.
  */
 export function getLineageSummary(
-  db: AutomatonDatabase,
-  config: AutomatonConfig,
+  db: AgentDatabase,
+  config: AgentConfig,
 ): string {
   const lineage = getLineage(db);
   const parts: string[] = [];
@@ -76,7 +76,7 @@ export function getLineageSummary(
  * Prune dead children from tracking (optional cleanup).
  */
 export function pruneDeadChildren(
-  db: AutomatonDatabase,
+  db: AgentDatabase,
   keepLast: number = 5,
 ): number {
   const children = db.getChildren();
@@ -103,7 +103,7 @@ export function pruneDeadChildren(
  */
 export async function refreshChildrenStatus(
   agentClient: SolanaAgentClient,
-  db: AutomatonDatabase,
+  db: AgentDatabase,
 ): Promise<void> {
   const { checkChildStatus } = await import("./spawn.js");
   const children = db.getChildren();

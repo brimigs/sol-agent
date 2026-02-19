@@ -1,7 +1,7 @@
 /**
- * Sol-Automaton Social Client
+ * Sol-Agent Social Client
  *
- * Creates a SocialClient for the automaton runtime using Solana ed25519 signing.
+ * Creates a SocialClient for the agent runtime using Solana ed25519 signing.
  * Replaces viem EVM signing with tweetnacl ed25519.
  */
 import nacl from "tweetnacl";
@@ -11,7 +11,7 @@ import { createHash } from "crypto";
  * Verify a message's ed25519 signature against the claimed sender address.
  *
  * The canonical signed string is identical to what the sender constructs in send():
- *   sol-automaton:send:<to>:<sha256(content) hex>:<signedAt>
+ *   sol-agent:send:<to>:<sha256(content) hex>:<signedAt>
  *
  * Returns true only when the signature is cryptographically valid for the
  * given `from` public key. Returns false if the signature is malformed, the
@@ -20,7 +20,7 @@ import { createHash } from "crypto";
 export function verifyMessageSignature(msg) {
     try {
         const contentHash = createHash("sha256").update(msg.content).digest("hex");
-        const canonical = `sol-automaton:send:${msg.to}:${contentHash}:${msg.signedAt}`;
+        const canonical = `sol-agent:send:${msg.to}:${contentHash}:${msg.signedAt}`;
         const messageBytes = new TextEncoder().encode(canonical);
         const signatureBytes = bs58.decode(msg.signature);
         const publicKeyBytes = bs58.decode(msg.from);
@@ -48,7 +48,7 @@ export function createSocialClient(relayUrl, keypair) {
         send: async (to, content, replyTo) => {
             const signedAt = new Date().toISOString();
             const contentHash = hash(content);
-            const canonical = `sol-automaton:send:${to}:${contentHash}:${signedAt}`;
+            const canonical = `sol-agent:send:${to}:${contentHash}:${signedAt}`;
             const signature = sign(canonical);
             const res = await fetch(`${baseUrl}/v1/messages`, {
                 method: "POST",
@@ -72,7 +72,7 @@ export function createSocialClient(relayUrl, keypair) {
         },
         poll: async (cursor, limit) => {
             const timestamp = new Date().toISOString();
-            const canonical = `sol-automaton:poll:${address}:${timestamp}`;
+            const canonical = `sol-agent:poll:${address}:${timestamp}`;
             const signature = sign(canonical);
             const res = await fetch(`${baseUrl}/v1/messages/poll`, {
                 method: "POST",
@@ -131,7 +131,7 @@ export function createSocialClient(relayUrl, keypair) {
         },
         unreadCount: async () => {
             const timestamp = new Date().toISOString();
-            const canonical = `sol-automaton:poll:${address}:${timestamp}`;
+            const canonical = `sol-agent:poll:${address}:${timestamp}`;
             const signature = sign(canonical);
             const res = await fetch(`${baseUrl}/v1/messages/count`, {
                 method: "GET",

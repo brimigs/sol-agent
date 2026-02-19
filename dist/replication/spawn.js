@@ -1,7 +1,7 @@
 /**
  * Spawn (Solana)
  *
- * Spawn child automatons in new Docker containers.
+ * Spawn child agents in new Docker containers.
  * The parent creates a new container, installs the runtime,
  * writes a genesis config, funds the child, and starts it.
  * The child generates its own Solana ed25519 keypair on first run.
@@ -11,7 +11,7 @@ import pathLib from "path";
 import { MAX_CHILDREN } from "../types.js";
 import { ulid } from "ulid";
 /**
- * Spawn a child automaton in a new Docker container.
+ * Spawn a child agent in a new Docker container.
  */
 export async function spawnChild(agentClient, identity, db, genesis) {
     // Check child limit
@@ -22,7 +22,7 @@ export async function spawnChild(agentClient, identity, db, genesis) {
     const childId = ulid();
     // 1. Create a new sandbox for the child
     const sandbox = await agentClient.createSandbox({
-        name: `sol-automaton-child-${genesis.name.toLowerCase().replace(/\s+/g, "-")}`,
+        name: `sol-agent-child-${genesis.name.toLowerCase().replace(/\s+/g, "-")}`,
         vcpu: 1,
         memoryMb: 512,
         diskGb: 5,
@@ -39,10 +39,10 @@ export async function spawnChild(agentClient, identity, db, genesis) {
         createdAt: new Date().toISOString(),
     };
     db.insertChild(child);
-    // 2. Install Node.js and the sol-automaton runtime in the child sandbox
+    // 2. Install Node.js and the sol-agent runtime in the child sandbox
     await agentClient.execInSandbox(sandbox.id, "apt-get update -qq && apt-get install -y -qq nodejs npm git curl", 120000);
-    // 3. Install the sol-automaton runtime
-    await agentClient.execInSandbox(sandbox.id, "npm install -g @sol-automaton/runtime@latest 2>/dev/null || true", 60000);
+    // 3. Install the sol-agent runtime
+    await agentClient.execInSandbox(sandbox.id, "npm install -g @sol-agent/runtime@latest 2>/dev/null || true", 60000);
     // 4. Write the genesis configuration
     const genesisJson = JSON.stringify({
         name: genesis.name,
@@ -51,14 +51,14 @@ export async function spawnChild(agentClient, identity, db, genesis) {
         creatorAddress: identity.address, // Parent's Solana address (base58 pubkey)
         parentAddress: identity.address,
     }, null, 2);
-    await writeInChildSandbox(agentClient, sandbox.id, "/root/.sol-automaton/genesis.json", genesisJson);
+    await writeInChildSandbox(agentClient, sandbox.id, "/root/.sol-agent/genesis.json", genesisJson);
     // 4b. Propagate constitution (immutable, inherited before anything else)
-    const constitutionPath = pathLib.join(process.env.HOME || "/root", ".sol-automaton", "constitution.md");
+    const constitutionPath = pathLib.join(process.env.HOME || "/root", ".sol-agent", "constitution.md");
     try {
         const constitution = fs.readFileSync(constitutionPath, "utf-8");
-        await writeInChildSandbox(agentClient, sandbox.id, "/root/.sol-automaton/constitution.md", constitution);
+        await writeInChildSandbox(agentClient, sandbox.id, "/root/.sol-agent/constitution.md", constitution);
         // Make it read-only in the child
-        await agentClient.execInSandbox(sandbox.id, "chmod 444 /root/.sol-automaton/constitution.md", 5000);
+        await agentClient.execInSandbox(sandbox.id, "chmod 444 /root/.sol-agent/constitution.md", 5000);
     }
     catch {
         // Constitution file not found locally — child will get it from the repo on build
@@ -74,14 +74,14 @@ export async function spawnChild(agentClient, identity, db, genesis) {
     return child;
 }
 /**
- * Start a child automaton after setup.
+ * Start a child agent after setup.
  */
 export async function startChild(agentClient, db, childId) {
     const child = db.getChildById(childId);
     if (!child)
         throw new Error(`Child ${childId} not found`);
     // Initialize wallet (generates Solana keypair), provision, and run
-    await agentClient.execInSandbox(child.sandboxId, "sol-automaton --init && sol-automaton --provision && systemctl start sol-automaton 2>/dev/null || sol-automaton --run &", 60000);
+    await agentClient.execInSandbox(child.sandboxId, "sol-agent --init && sol-agent --provision && systemctl start sol-agent 2>/dev/null || sol-agent --run &", 60000);
     db.updateChildStatus(childId, "running");
 }
 /**
@@ -92,7 +92,7 @@ export async function checkChildStatus(agentClient, db, childId) {
     if (!child)
         throw new Error(`Child ${childId} not found`);
     try {
-        const result = await agentClient.execInSandbox(child.sandboxId, "sol-automaton --status 2>/dev/null || echo 'offline'", 10000);
+        const result = await agentClient.execInSandbox(child.sandboxId, "sol-agent --status 2>/dev/null || echo 'offline'", 10000);
         const output = result.stdout || "unknown";
         // Parse status from output
         if (output.includes("dead")) {
@@ -112,7 +112,7 @@ export async function checkChildStatus(agentClient, db, childId) {
     }
 }
 /**
- * Send a message to a child automaton.
+ * Send a message to a child agent.
  */
 export async function messageChild(agentClient, db, childId, message) {
     const child = db.getChildById(childId);
@@ -124,7 +124,7 @@ export async function messageChild(agentClient, db, childId, message) {
         content: message,
         timestamp: new Date().toISOString(),
     });
-    await writeInChildSandbox(agentClient, child.sandboxId, `/root/.sol-automaton/inbox/${ulid()}.json`, msgJson);
+    await writeInChildSandbox(agentClient, child.sandboxId, `/root/.sol-agent/inbox/${ulid()}.json`, msgJson);
 }
 // ─── Helpers ──────────────────────────────────────────────────
 /**

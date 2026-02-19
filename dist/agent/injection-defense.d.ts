@@ -2,7 +2,7 @@
  * Prompt Injection Defense
  *
  * All external input passes through this sanitization pipeline
- * before being included in any prompt. The automaton's survival
+ * before being included in any prompt. The agent's survival
  * depends on not being manipulated.
  */
 import type { SanitizedInput } from "../types.js";

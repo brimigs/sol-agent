@@ -1,7 +1,7 @@
 /**
- * Sol-Automaton Database
+ * Sol-Agent Database
  *
- * SQLite-backed persistent state for the Solana automaton.
+ * SQLite-backed persistent state for the Solana agent.
  * Uses better-sqlite3 for synchronous, single-process access.
  * Updated for Solana: asset_address + tx_signature in registry.
  */

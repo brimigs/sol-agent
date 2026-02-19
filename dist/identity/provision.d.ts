@@ -1,5 +1,5 @@
 /**
- * Sol-Automaton Identity Helpers
+ * Sol-Agent Identity Helpers
  *
  * Lightweight helpers for reading/writing identity config.
  * Authentication is handled directly via Solana ed25519 keypair —
@@ -7,7 +7,7 @@
  */
 import type { ProvisionResult } from "../types.js";
 /**
- * Load API key from ~/.sol-automaton/config.json if it exists.
+ * Load API key from ~/.sol-agent/config.json if it exists.
  * Kept for backward compatibility with configs that stored an apiKey field.
  */
 export declare function loadApiKeyFromConfig(): string | null;

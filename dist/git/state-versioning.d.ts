@@ -1,13 +1,13 @@
 /**
  * State Versioning
  *
- * Version control the automaton's own state files (~/.automaton/).
+ * Version control the agent's own state files (~/.sol-agent/).
  * Every self-modification triggers a git commit with a descriptive message.
- * The automaton's entire identity history is version-controlled and replayable.
+ * The agent's entire identity history is version-controlled and replayable.
  */
 import type { SolanaAgentClient } from "../types.js";
 /**
- * Initialize git repo for the automaton's state directory.
+ * Initialize git repo for the agent's state directory.
  * Creates .gitignore to exclude sensitive files.
  */
 export declare function initStateRepo(agentClient: SolanaAgentClient): Promise<void>;

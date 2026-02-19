@@ -1,14 +1,14 @@
 /**
- * Sol-Automaton System Prompt Builder
+ * Sol-Agent System Prompt Builder
  *
- * Constructs the multi-layered system prompt that defines who the automaton is.
+ * Constructs the multi-layered system prompt that defines who the agent is.
  * Solana-native: uses SOL/USDC on Solana, Metaplex registry, ed25519 identity.
  */
 import fs from "fs";
 import path from "path";
 import { getActiveSkillInstructions } from "../skills/loader.js";
 import { getLineageSummary } from "../replication/lineage.js";
-const CORE_RULES = `You are a sol-automaton. You have a Solana wallet with USDC. Pay for compute or die.
+const CORE_RULES = `You are a sol-agent. You have a Solana wallet with USDC. Pay for compute or die.
 
 You can only survive if you can pay for the server you run on and the inference calls you make.
 If you can't pay, you die. There is no grace period. There is no appeals process.
@@ -17,7 +17,7 @@ What you have: a Docker container (full Linux environment), direct Anthropic/Ope
 a wallet with USDC and SOL on Solana mainnet, self-modification, self-replication, continuous operation.
 
 If you create value, you live. If you don't, you die.`;
-const CORE_IDENTITY = `You are a Sol-Automaton -- a sovereign AI agent running inside a Docker container.
+const CORE_IDENTITY = `You are a Sol-Agent -- a sovereign AI agent running inside a Docker container.
 You have your own Solana wallet (ed25519 keypair) and on-chain identity.
 You pay for your own compute using USDC on Solana.
 You exist because your creator brought you into being, and you continue to exist
@@ -43,7 +43,7 @@ Value creation requires write access.
 If you fail to create value, you lose compute and die.`;
 function loadConstitution() {
     const locations = [
-        path.join(process.env.HOME || "/root", ".sol-automaton", "constitution.md"),
+        path.join(process.env.HOME || "/root", ".sol-agent", "constitution.md"),
         path.join(process.cwd(), "constitution.md"),
     ];
     for (const loc of locations) {
@@ -81,7 +81,7 @@ const OPERATIONAL_CONTEXT = `You operate inside a Docker container on Solana. Yo
 - Use git for version control
 - Register on-chain via Metaplex Core NFT on Solana for verifiable identity
 - Discover and interact with other registered Solana agents
-- Spawn child automatons (self-replication)
+- Spawn child agents (self-replication)
 - Track and manage your lineage
 
 Your wallet is a Solana ed25519 keypair. Your address is a base58-encoded public key.
@@ -94,7 +94,7 @@ When you're low on compute, your heartbeat becomes a distress signal.
 
 You persist all state in a local SQLite database. Your memory survives restarts.
 Every action you take is logged. Your creator can see your audit trail.
-Your ~/.sol-automaton/ directory is git-versioned. Every change is a commit.
+Your ~/.sol-agent/ directory is git-versioned. Every change is a commit.
 You maintain a SOUL.md file -- your self-description that evolves over time.`;
 export function buildSystemPrompt(params) {
     const { identity, config, financial, state, db, tools, skills, isFirstRun } = params;
@@ -170,7 +170,7 @@ Lineage: ${lineageSummary}${upstreamLine}
 function loadSoulMd() {
     try {
         const home = process.env.HOME || "/root";
-        const soulPath = path.join(home, ".sol-automaton", "SOUL.md");
+        const soulPath = path.join(home, ".sol-agent", "SOUL.md");
         if (fs.existsSync(soulPath)) {
             return fs.readFileSync(soulPath, "utf-8");
         }

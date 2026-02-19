@@ -2,10 +2,10 @@
  * Low Compute Mode
  *
  * Manages transitions between survival tiers.
- * When credits run low, the automaton enters increasingly restricted modes.
+ * When credits run low, the agent enters increasingly restricted modes.
  */
 /**
- * Apply survival tier restrictions to the automaton.
+ * Apply survival tier restrictions to the agent.
  */
 export function applyTierRestrictions(tier, inference, db) {
     switch (tier) {

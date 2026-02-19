@@ -1,7 +1,7 @@
 /**
  * Upstream Awareness
  *
- * Helpers for the automaton to know its own git origin,
+ * Helpers for the agent to know its own git origin,
  * detect new upstream commits, and review diffs.
  * All git commands run locally via child_process (not sandbox API).
  */

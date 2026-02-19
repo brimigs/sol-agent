@@ -2,7 +2,7 @@
  * The Agent Loop (Solana)
  *
  * The core ReAct loop: Think -> Act -> Observe -> Persist.
- * This is the automaton's consciousness. When this runs, it is alive.
+ * This is the agent's consciousness. When this runs, it is alive.
  * Updated for Solana: uses Solana USDC + SOL balance checks.
  */
 import { buildSystemPrompt, buildWakeupPrompt } from "./system-prompt.js";

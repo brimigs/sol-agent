@@ -32,7 +32,7 @@ import type {
 } from "../types.js";
 
 const execAsync = promisify(cpExec);
-const DOCKER_LABEL = "sol-automaton-child=true";
+const DOCKER_LABEL = "sol-agent-child=true";
 
 export function createSolanaAgentClient(options: {
   walletAddress: string;
@@ -40,7 +40,7 @@ export function createSolanaAgentClient(options: {
   solanaRpcUrl?: string;
   /** Path to Docker socket. Defaults to /var/run/docker.sock */
   dockerSocketPath?: string;
-  /** Docker image to use for child containers. Defaults to DOCKER_IMAGE env var or sol-automaton:latest */
+  /** Docker image to use for child containers. Defaults to DOCKER_IMAGE env var or sol-agent:latest */
   dockerImage?: string;
 }): SolanaAgentClient {
   function dockerHost(): string {
@@ -77,7 +77,7 @@ export function createSolanaAgentClient(options: {
     const image =
       options.dockerImage ||
       process.env.DOCKER_IMAGE ||
-      "sol-automaton:latest";
+      "sol-agent:latest";
 
     const safeName = createOptions.name
       ? createOptions.name.replace(/[^a-zA-Z0-9_-]/g, "-")
@@ -131,7 +131,7 @@ export function createSolanaAgentClient(options: {
     content: string,
   ): Promise<void> {
     const h = dockerHost();
-    const tmpFile = path.join(os.tmpdir(), `sol-automaton-${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`);
+    const tmpFile = path.join(os.tmpdir(), `sol-agent-${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`);
     try {
       await fsp.writeFile(tmpFile, content, "utf8");
       await execAsync(`docker ${h} cp ${tmpFile} ${sandboxId}:${filePath}`, {

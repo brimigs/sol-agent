@@ -2,7 +2,7 @@
  * Audit Log
  *
  * Immutable append-only log of all self-modifications.
- * The creator can see everything the automaton changes about itself.
+ * The creator can see everything the agent changes about itself.
  */
 import { ulid } from "ulid";
 /**

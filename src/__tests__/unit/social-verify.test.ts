@@ -23,7 +23,7 @@ function makeSignature(
   content: string,
   signedAt: string,
 ): string {
-  const canonical = `sol-automaton:send:${to}:${hashContent(content)}:${signedAt}`;
+  const canonical = `sol-agent:send:${to}:${hashContent(content)}:${signedAt}`;
   const sig = nacl.sign.detached(new TextEncoder().encode(canonical), keypair.secretKey);
   return bs58.encode(sig);
 }

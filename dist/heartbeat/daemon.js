@@ -3,7 +3,7 @@
  *
  * Runs periodic tasks on cron schedules inside the same Node.js process.
  * The heartbeat runs even when the agent is sleeping.
- * It IS the automaton's pulse. When it stops, the automaton is dead.
+ * It IS the agent's pulse. When it stops, the agent is dead.
  */
 import cronParser from "cron-parser";
 import { BUILTIN_TASKS } from "./tasks.js";

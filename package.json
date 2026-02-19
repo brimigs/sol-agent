@@ -1,12 +1,12 @@
 {
-  "name": "sol-automaton",
+  "name": "sol-agent",
   "version": "0.1.0",
   "description": "Sovereign AI Agent Runtime on Solana",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "sol-automaton": "dist/index.js"
+    "sol-agent": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",

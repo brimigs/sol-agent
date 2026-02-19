@@ -1,14 +1,14 @@
 /**
  * Skills Loader
  *
- * Discovers and loads SKILL.md files from ~/.automaton/skills/
+ * Discovers and loads SKILL.md files from ~/.sol-agent/skills/
  * Each skill is a directory containing a SKILL.md file with
  * YAML frontmatter + Markdown instructions.
  */
 
 import fs from "fs";
 import path from "path";
-import type { Skill, AutomatonDatabase } from "../types.js";
+import type { Skill, AgentDatabase } from "../types.js";
 import { parseSkillMd } from "./format.js";
 
 /**
@@ -17,7 +17,7 @@ import { parseSkillMd } from "./format.js";
  */
 export function loadSkills(
   skillsDir: string,
-  db: AutomatonDatabase,
+  db: AgentDatabase,
 ): Skill[] {
   const resolvedDir = resolveHome(skillsDir);
 

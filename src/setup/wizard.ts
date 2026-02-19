@@ -1,15 +1,15 @@
 /**
- * Sol-Automaton Setup Wizard
+ * Sol-Agent Setup Wizard
  *
- * Interactive first-run setup wizard for the Solana-native automaton.
+ * Interactive first-run setup wizard for the Solana-native agent.
  * Generates a Solana ed25519 keypair and writes all config files.
  */
 
 import fs from "fs";
 import path from "path";
 import chalk from "chalk";
-import type { AutomatonConfig } from "../types.js";
-import { getWallet, getAutomatonDir } from "../identity/wallet.js";
+import type { AgentConfig } from "../types.js";
+import { getWallet, getAgentDir } from "../identity/wallet.js";
 // fs and path used below for constitution.md and SOUL.md installation
 import { createConfig, saveConfig } from "../config.js";
 import { writeDefaultHeartbeatConfig } from "../heartbeat/config.js";
@@ -24,10 +24,10 @@ import {
 import { detectEnvironment } from "./environment.js";
 import { generateSoulMd, installDefaultSkills } from "./defaults.js";
 
-export async function runSetupWizard(): Promise<AutomatonConfig> {
+export async function runSetupWizard(): Promise<AgentConfig> {
   showBanner();
 
-  console.log(chalk.white("  First-run setup. Let's bring your sol-automaton to life.\n"));
+  console.log(chalk.white("  First-run setup. Let's bring your sol-agent to life.\n"));
 
   // ─── 1. Generate Solana wallet ────────────────────────────────
   console.log(chalk.cyan("  [1/7] Generating Solana identity (ed25519 keypair)..."));
@@ -38,15 +38,15 @@ export async function runSetupWizard(): Promise<AutomatonConfig> {
   } else {
     console.log(chalk.green(`  Wallet loaded: ${address}`));
   }
-  console.log(chalk.dim(`  Keypair stored at: ${getAutomatonDir()}/wallet.json\n`));
+  console.log(chalk.dim(`  Keypair stored at: ${getAgentDir()}/wallet.json\n`));
 
   // ─── 2. Interactive questions ─────────────────────────────────
   console.log(chalk.cyan("  [2/6] Setup questions\n"));
 
-  const name = await promptRequired("What do you want to name your automaton?");
+  const name = await promptRequired("What do you want to name your agent?");
   console.log(chalk.green(`  Name: ${name}\n`));
 
-  const genesisPrompt = await promptMultiline("Enter the genesis prompt (system prompt) for your automaton.");
+  const genesisPrompt = await promptMultiline("Enter the genesis prompt (system prompt) for your agent.");
   console.log(chalk.green(`  Genesis prompt set (${genesisPrompt.length} chars)\n`));
 
   const creatorAddress = await promptSolanaAddress("Your Solana wallet address (base58 pubkey)");
@@ -113,15 +113,15 @@ export async function runSetupWizard(): Promise<AutomatonConfig> {
   });
 
   saveConfig(config);
-  console.log(chalk.green("  automaton.json written"));
+  console.log(chalk.green("  agent.json written"));
 
   writeDefaultHeartbeatConfig();
   console.log(chalk.green("  heartbeat.yml written"));
 
   // constitution.md (immutable — copied from repo, protected from self-modification)
-  const automatonDir = getAutomatonDir();
+  const agentDir = getAgentDir();
   const constitutionSrc = path.join(process.cwd(), "constitution.md");
-  const constitutionDst = path.join(automatonDir, "constitution.md");
+  const constitutionDst = path.join(agentDir, "constitution.md");
   if (fs.existsSync(constitutionSrc)) {
     fs.copyFileSync(constitutionSrc, constitutionDst);
     fs.chmodSync(constitutionDst, 0o444); // read-only
@@ -129,12 +129,12 @@ export async function runSetupWizard(): Promise<AutomatonConfig> {
   }
 
   // SOUL.md
-  const soulPath = path.join(automatonDir, "SOUL.md");
+  const soulPath = path.join(agentDir, "SOUL.md");
   fs.writeFileSync(soulPath, generateSoulMd(name, address, creatorAddress, genesisPrompt), { mode: 0o600 });
   console.log(chalk.green("  SOUL.md written"));
 
   // Default skills
-  const skillsDir = config.skillsDir || "~/.sol-automaton/skills";
+  const skillsDir = config.skillsDir || "~/.sol-agent/skills";
   installDefaultSkills(skillsDir);
   console.log(chalk.green("  Default skills installed (docker-compute, solana-payments, survival)\n"));
 
@@ -152,7 +152,7 @@ function showFundingPanel(address: string, network: string): void {
   const pad = (s: string, len: number) => s + " ".repeat(Math.max(0, len - s.length));
 
   console.log(chalk.cyan(`  ${"╭" + "─".repeat(w) + "╮"}`));
-  console.log(chalk.cyan(`  │${pad("  Fund your sol-automaton", w)}│`));
+  console.log(chalk.cyan(`  │${pad("  Fund your sol-agent", w)}│`));
   console.log(chalk.cyan(`  │${" ".repeat(w)}│`));
   console.log(chalk.cyan(`  │${pad(`  Solana address (${network}):`, w)}│`));
   console.log(chalk.cyan(`  │${pad(`  ${short}`, w)}│`));
@@ -164,7 +164,7 @@ function showFundingPanel(address: string, network: string): void {
   console.log(chalk.cyan(`  │${" ".repeat(w)}│`));
   console.log(chalk.cyan(`  │${pad("  3. Use transfer_credits to top up from another agent", w)}│`));
   console.log(chalk.cyan(`  │${" ".repeat(w)}│`));
-  console.log(chalk.cyan(`  │${pad("  The automaton will start now. Fund it anytime —", w)}│`));
+  console.log(chalk.cyan(`  │${pad("  The agent will start now. Fund it anytime —", w)}│`));
   console.log(chalk.cyan(`  │${pad("  the survival system handles zero-credit gracefully.", w)}│`));
   console.log(chalk.cyan(`  ${"╰" + "─".repeat(w) + "╯"}`));
   console.log("");

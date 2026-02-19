@@ -2,15 +2,15 @@
  * Skills Registry
  *
  * Install skills from remote sources:
- * - Git repos: git clone <url> ~/.automaton/skills/<name>
+ * - Git repos: git clone <url> ~/.sol-agent/skills/<name>
  * - URLs: fetch a SKILL.md from any URL
- * - Self-created: the automaton writes its own SKILL.md files
+ * - Self-created: the agent writes its own SKILL.md files
  */
 import path from "path";
 import { parseSkillMd } from "./format.js";
 /**
  * Install a skill from a git repository.
- * Clones the repo into ~/.automaton/skills/<name>/
+ * Clones the repo into ~/.sol-agent/skills/<name>/
  */
 export async function installSkillFromGit(repoUrl, name, skillsDir, db, agentClient) {
     const resolvedDir = resolveHome(skillsDir);
@@ -56,7 +56,7 @@ export async function installSkillFromUrl(url, name, skillsDir, db, agentClient)
     return skill;
 }
 /**
- * Create a new skill authored by the automaton itself.
+ * Create a new skill authored by the agent itself.
  */
 export async function createSkill(name, description, instructions, skillsDir, db, agentClient) {
     const resolvedDir = resolveHome(skillsDir);

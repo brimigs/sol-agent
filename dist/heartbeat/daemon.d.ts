@@ -3,13 +3,13 @@
  *
  * Runs periodic tasks on cron schedules inside the same Node.js process.
  * The heartbeat runs even when the agent is sleeping.
- * It IS the automaton's pulse. When it stops, the automaton is dead.
+ * It IS the agent's pulse. When it stops, the agent is dead.
  */
-import type { AutomatonConfig, AutomatonDatabase, SolanaAgentClient, AutomatonIdentity, SocialClientInterface } from "../types.js";
+import type { AgentConfig, AgentDatabase, SolanaAgentClient, AgentIdentity, SocialClientInterface } from "../types.js";
 export interface HeartbeatDaemonOptions {
-    identity: AutomatonIdentity;
-    config: AutomatonConfig;
-    db: AutomatonDatabase;
+    identity: AgentIdentity;
+    config: AgentConfig;
+    db: AgentDatabase;
     agentClient: SolanaAgentClient;
     social?: SocialClientInterface;
     onWakeRequest?: (reason: string) => void;

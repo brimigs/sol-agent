@@ -2,9 +2,9 @@
  * Skills Registry
  *
  * Install skills from remote sources:
- * - Git repos: git clone <url> ~/.automaton/skills/<name>
+ * - Git repos: git clone <url> ~/.sol-agent/skills/<name>
  * - URLs: fetch a SKILL.md from any URL
- * - Self-created: the automaton writes its own SKILL.md files
+ * - Self-created: the agent writes its own SKILL.md files
  */
 
 import fs from "fs";
@@ -12,20 +12,20 @@ import path from "path";
 import type {
   Skill,
   SkillSource,
-  AutomatonDatabase,
+  AgentDatabase,
   SolanaAgentClient,
 } from "../types.js";
 import { parseSkillMd } from "./format.js";
 
 /**
  * Install a skill from a git repository.
- * Clones the repo into ~/.automaton/skills/<name>/
+ * Clones the repo into ~/.sol-agent/skills/<name>/
  */
 export async function installSkillFromGit(
   repoUrl: string,
   name: string,
   skillsDir: string,
-  db: AutomatonDatabase,
+  db: AgentDatabase,
   agentClient: SolanaAgentClient,
 ): Promise<Skill | null> {
   const resolvedDir = resolveHome(skillsDir);
@@ -65,7 +65,7 @@ export async function installSkillFromUrl(
   url: string,
   name: string,
   skillsDir: string,
-  db: AutomatonDatabase,
+  db: AgentDatabase,
   agentClient: SolanaAgentClient,
 ): Promise<Skill | null> {
   const resolvedDir = resolveHome(skillsDir);
@@ -100,14 +100,14 @@ export async function installSkillFromUrl(
 }
 
 /**
- * Create a new skill authored by the automaton itself.
+ * Create a new skill authored by the agent itself.
  */
 export async function createSkill(
   name: string,
   description: string,
   instructions: string,
   skillsDir: string,
-  db: AutomatonDatabase,
+  db: AgentDatabase,
   agentClient: SolanaAgentClient,
 ): Promise<Skill> {
   const resolvedDir = resolveHome(skillsDir);
@@ -147,7 +147,7 @@ ${instructions}`;
  */
 export async function removeSkill(
   name: string,
-  db: AutomatonDatabase,
+  db: AgentDatabase,
   agentClient: SolanaAgentClient,
   skillsDir: string,
   deleteFiles: boolean = false,
@@ -164,7 +164,7 @@ export async function removeSkill(
 /**
  * List all installed skills.
  */
-export function listSkills(db: AutomatonDatabase): Skill[] {
+export function listSkills(db: AgentDatabase): Skill[] {
   return db.getSkills();
 }
 

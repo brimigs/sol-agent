@@ -1,7 +1,7 @@
 /**
  * Resource Monitor (Solana)
  *
- * Continuously monitors the automaton's resources and triggers
+ * Continuously monitors the agent's resources and triggers
  * survival mode transitions when needed.
  * Updated for Solana: checks USDC (SPL) and SOL balances.
  */

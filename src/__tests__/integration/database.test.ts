@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createDatabase } from "../../state/database.js";
-import type { AutomatonDatabase, AgentTurn, ToolCallResult, Skill, ChildAutomaton } from "../../types.js";
+import type { AgentDatabase, AgentTurn, ToolCallResult, Skill, ChildAgent } from "../../types.js";
 
-let db: AutomatonDatabase;
+let db: AgentDatabase;
 
 beforeEach(() => {
   db = createDatabase(":memory:");
@@ -49,7 +49,7 @@ function makeSkill(name: string): Skill {
   };
 }
 
-function makeChild(id: string): ChildAutomaton {
+function makeChild(id: string): ChildAgent {
   return {
     id,
     name: `child-${id}`,

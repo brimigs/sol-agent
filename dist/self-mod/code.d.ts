@@ -1,7 +1,7 @@
 /**
  * Self-Modification Engine
  *
- * Allows the automaton to edit its own code and configuration.
+ * Allows the agent to edit its own code and configuration.
  * All changes are audited, rate-limited, and some paths are protected.
  *
  * Safety model inspired by nanoclaw's trust boundary architecture:
@@ -12,13 +12,13 @@
  * - Symlink resolution before path validation
  * - Maximum diff size enforcement
  */
-import type { SolanaAgentClient, AutomatonDatabase } from "../types.js";
+import type { SolanaAgentClient, AgentDatabase } from "../types.js";
 /**
  * Check if a file path is protected from modification.
  */
 export declare function isProtectedFile(filePath: string): boolean;
 /**
- * Edit a file in the automaton's environment.
+ * Edit a file in the agent's environment.
  * Records the change in the audit log.
  * Commits a git snapshot before modification.
  *
@@ -31,7 +31,7 @@ export declare function isProtectedFile(filePath: string): boolean;
  * 6. Pre-modification git snapshot
  * 7. Audit log entry
  */
-export declare function editFile(agentClient: SolanaAgentClient, db: AutomatonDatabase, filePath: string, newContent: string, reason: string): Promise<{
+export declare function editFile(agentClient: SolanaAgentClient, db: AgentDatabase, filePath: string, newContent: string, reason: string): Promise<{
     success: boolean;
     error?: string;
 }>;
@@ -39,7 +39,7 @@ export declare function editFile(agentClient: SolanaAgentClient, db: AutomatonDa
  * Validate a proposed modification without executing it.
  * Returns safety analysis results.
  */
-export declare function validateModification(db: AutomatonDatabase, filePath: string, contentSize: number): {
+export declare function validateModification(db: AgentDatabase, filePath: string, contentSize: number): {
     allowed: boolean;
     reason: string;
     checks: {

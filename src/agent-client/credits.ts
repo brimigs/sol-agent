@@ -1,7 +1,7 @@
 /**
  * Credits Management
  *
- * Monitors the automaton's compute credit balance and triggers
+ * Monitors the agent's compute credit balance and triggers
  * survival mode transitions.
  */
 

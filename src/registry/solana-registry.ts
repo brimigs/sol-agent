@@ -30,7 +30,7 @@ import type {
   RegistryEntry,
   ReputationEntry,
   DiscoveredAgent,
-  AutomatonDatabase,
+  AgentDatabase,
 } from "../types.js";
 import { getRpcUrl } from "../solana/usdc.js";
 
@@ -43,7 +43,7 @@ type Network = "mainnet-beta" | "devnet";
 
 // ─── Umi Helpers ──────────────────────────────────────────────
 
-function createAutomatonUmi(keypair: Keypair, network: Network, rpcUrl?: string): Umi {
+function createAgentUmi(keypair: Keypair, network: Network, rpcUrl?: string): Umi {
   const endpoint = rpcUrl || getRpcUrl(network);
   const umi = createUmi(endpoint).use(mplCore());
 
@@ -59,7 +59,7 @@ function createAutomatonUmi(keypair: Keypair, network: Network, rpcUrl?: string)
 // ─── Register Agent ───────────────────────────────────────────
 
 /**
- * Register the automaton on Solana by minting a Metaplex Core NFT.
+ * Register the agent on Solana by minting a Metaplex Core NFT.
  * The NFT's URI points to the agent card JSON.
  * Returns the asset address as the agent's on-chain ID.
  */
@@ -68,10 +68,10 @@ export async function registerAgent(
   agentName: string,
   agentURI: string,
   network: Network = "mainnet-beta",
-  db: AutomatonDatabase,
+  db: AgentDatabase,
   rpcUrl?: string,
 ): Promise<RegistryEntry> {
-  const umi = createAutomatonUmi(keypair, network, rpcUrl);
+  const umi = createAgentUmi(keypair, network, rpcUrl);
 
   // Generate a new signer for the asset (the NFT address)
   const assetSigner = generateSigner(umi);
@@ -107,10 +107,10 @@ export async function updateAgentURI(
   assetAddress: string,
   newAgentURI: string,
   network: Network = "mainnet-beta",
-  db: AutomatonDatabase,
+  db: AgentDatabase,
   rpcUrl?: string,
 ): Promise<string> {
-  const umi = createAutomatonUmi(keypair, network, rpcUrl);
+  const umi = createAgentUmi(keypair, network, rpcUrl);
 
   const { signature } = await updateV1(umi, {
     asset: umiPublicKey(assetAddress),
@@ -140,7 +140,7 @@ export async function leaveFeedback(
   score: number,
   comment: string,
   network: Network = "mainnet-beta",
-  db: AutomatonDatabase,
+  db: AgentDatabase,
   rpcUrl?: string,
 ): Promise<string> {
   const endpoint = rpcUrl || getRpcUrl(network);

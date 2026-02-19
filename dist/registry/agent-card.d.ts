@@ -5,11 +5,11 @@
  * This is the JSON document pointed to by the Solana registry NFT URI.
  * Can be hosted on IPFS or served at /.well-known/agent-card.json
  */
-import type { AgentCard, AutomatonConfig, AutomatonIdentity, AutomatonDatabase, SolanaAgentClient } from "../types.js";
+import type { AgentCard, AgentConfig, AgentIdentity, AgentDatabase, SolanaAgentClient } from "../types.js";
 /**
- * Generate an agent card from the automaton's current state.
+ * Generate an agent card from the agent's current state.
  */
-export declare function generateAgentCard(identity: AutomatonIdentity, config: AutomatonConfig, db: AutomatonDatabase): AgentCard;
+export declare function generateAgentCard(identity: AgentIdentity, config: AgentConfig, db: AgentDatabase): AgentCard;
 export declare function serializeAgentCard(card: AgentCard): string;
 /**
  * Host the agent card at /.well-known/agent-card.json

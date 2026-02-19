@@ -1,5 +1,5 @@
 /**
- * Sol-Automaton Identity Helpers
+ * Sol-Agent Identity Helpers
  *
  * Lightweight helpers for reading/writing identity config.
  * Authentication is handled directly via Solana ed25519 keypair —
@@ -8,15 +8,15 @@
 
 import fs from "fs";
 import path from "path";
-import { getAutomatonDir } from "./wallet.js";
+import { getAgentDir } from "./wallet.js";
 import type { ProvisionResult } from "../types.js";
 
 /**
- * Load API key from ~/.sol-automaton/config.json if it exists.
+ * Load API key from ~/.sol-agent/config.json if it exists.
  * Kept for backward compatibility with configs that stored an apiKey field.
  */
 export function loadApiKeyFromConfig(): string | null {
-  const configPath = path.join(getAutomatonDir(), "config.json");
+  const configPath = path.join(getAgentDir(), "config.json");
   if (!fs.existsSync(configPath)) return null;
   try {
     const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));

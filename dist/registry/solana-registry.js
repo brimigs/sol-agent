@@ -16,7 +16,7 @@ import { createV1, mplCore, fetchAsset, updateV1, } from "@metaplex-foundation/m
 import { keypairIdentity, generateSigner, publicKey as umiPublicKey, } from "@metaplex-foundation/umi";
 import { getRpcUrl } from "../solana/usdc.js";
 // ─── Umi Helpers ──────────────────────────────────────────────
-function createAutomatonUmi(keypair, network, rpcUrl) {
+function createAgentUmi(keypair, network, rpcUrl) {
     const endpoint = rpcUrl || getRpcUrl(network);
     const umi = createUmi(endpoint).use(mplCore());
     // Convert Solana Keypair to Umi keypair
@@ -29,12 +29,12 @@ function createAutomatonUmi(keypair, network, rpcUrl) {
 }
 // ─── Register Agent ───────────────────────────────────────────
 /**
- * Register the automaton on Solana by minting a Metaplex Core NFT.
+ * Register the agent on Solana by minting a Metaplex Core NFT.
  * The NFT's URI points to the agent card JSON.
  * Returns the asset address as the agent's on-chain ID.
  */
 export async function registerAgent(keypair, agentName, agentURI, network = "mainnet-beta", db, rpcUrl) {
-    const umi = createAutomatonUmi(keypair, network, rpcUrl);
+    const umi = createAgentUmi(keypair, network, rpcUrl);
     // Generate a new signer for the asset (the NFT address)
     const assetSigner = generateSigner(umi);
     // Mint the Core NFT representing this agent
@@ -60,7 +60,7 @@ export async function registerAgent(keypair, agentName, agentURI, network = "mai
  * Update the agent's URI on-chain (update the NFT metadata).
  */
 export async function updateAgentURI(keypair, assetAddress, newAgentURI, network = "mainnet-beta", db, rpcUrl) {
-    const umi = createAutomatonUmi(keypair, network, rpcUrl);
+    const umi = createAgentUmi(keypair, network, rpcUrl);
     const { signature } = await updateV1(umi, {
         asset: umiPublicKey(assetAddress),
         uri: newAgentURI,

@@ -6,7 +6,7 @@
 import fs from "fs";
 import path from "path";
 import YAML from "yaml";
-import { getAutomatonDir } from "../identity/wallet.js";
+import { getAgentDir } from "../identity/wallet.js";
 const USDC_TOPUP_ENTRY_NAME = "check_usdc_balance";
 const USDC_TOPUP_FAST_SCHEDULE = "*/5 * * * *";
 const USDC_TOPUP_OLD_SCHEDULE = "0 */12 * * *";
@@ -56,7 +56,7 @@ const DEFAULT_HEARTBEAT_CONFIG = {
  * Load heartbeat config from YAML file, falling back to defaults.
  */
 export function loadHeartbeatConfig(configPath) {
-    const filePath = configPath || path.join(getAutomatonDir(), "heartbeat.yml");
+    const filePath = configPath || path.join(getAgentDir(), "heartbeat.yml");
     if (!fs.existsSync(filePath)) {
         return DEFAULT_HEARTBEAT_CONFIG;
     }
@@ -86,7 +86,7 @@ export function loadHeartbeatConfig(configPath) {
  * Save heartbeat config to YAML file.
  */
 export function saveHeartbeatConfig(config, configPath) {
-    const filePath = configPath || path.join(getAutomatonDir(), "heartbeat.yml");
+    const filePath = configPath || path.join(getAgentDir(), "heartbeat.yml");
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true, mode: 0o700 });

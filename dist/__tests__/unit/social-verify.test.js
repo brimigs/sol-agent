@@ -14,7 +14,7 @@ function hashContent(content) {
     return createHash("sha256").update(content).digest("hex");
 }
 function makeSignature(keypair, to, content, signedAt) {
-    const canonical = `sol-automaton:send:${to}:${hashContent(content)}:${signedAt}`;
+    const canonical = `sol-agent:send:${to}:${hashContent(content)}:${signedAt}`;
     const sig = nacl.sign.detached(new TextEncoder().encode(canonical), keypair.secretKey);
     return bs58.encode(sig);
 }

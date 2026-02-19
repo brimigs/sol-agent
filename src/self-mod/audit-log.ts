@@ -2,11 +2,11 @@
  * Audit Log
  *
  * Immutable append-only log of all self-modifications.
- * The creator can see everything the automaton changes about itself.
+ * The creator can see everything the agent changes about itself.
  */
 
 import type {
-  AutomatonDatabase,
+  AgentDatabase,
   ModificationEntry,
   ModificationType,
 } from "../types.js";
@@ -16,7 +16,7 @@ import { ulid } from "ulid";
  * Log a self-modification to the audit trail.
  */
 export function logModification(
-  db: AutomatonDatabase,
+  db: AgentDatabase,
   type: ModificationType,
   description: string,
   options?: {
@@ -43,7 +43,7 @@ export function logModification(
  * Get recent modifications for display or context.
  */
 export function getRecentModifications(
-  db: AutomatonDatabase,
+  db: AgentDatabase,
   limit: number = 20,
 ): ModificationEntry[] {
   return db.getRecentModifications(limit);
@@ -53,7 +53,7 @@ export function getRecentModifications(
  * Generate a summary of all modifications for the creator.
  */
 export function generateAuditReport(
-  db: AutomatonDatabase,
+  db: AgentDatabase,
 ): string {
   const mods = db.getRecentModifications(100);
 

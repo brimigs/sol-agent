@@ -1,16 +1,16 @@
 /**
  * Resource Monitor (Solana)
  *
- * Continuously monitors the automaton's resources and triggers
+ * Continuously monitors the agent's resources and triggers
  * survival mode transitions when needed.
  * Updated for Solana: checks USDC (SPL) and SOL balances.
  */
 
 import type {
-  AutomatonConfig,
-  AutomatonDatabase,
+  AgentConfig,
+  AgentDatabase,
   SolanaAgentClient,
-  AutomatonIdentity,
+  AgentIdentity,
   FinancialState,
   SurvivalTier,
 } from "../types.js";
@@ -29,10 +29,10 @@ export interface ResourceStatus {
  * Check all resources and return current status.
  */
 export async function checkResources(
-  identity: AutomatonIdentity,
+  identity: AgentIdentity,
   agentClient: SolanaAgentClient,
-  db: AutomatonDatabase,
-  config?: AutomatonConfig,
+  db: AgentDatabase,
+  config?: AgentConfig,
 ): Promise<ResourceStatus> {
   const network = config?.solanaNetwork || "mainnet-beta";
   const rpcUrl = config?.solanaRpcUrl;

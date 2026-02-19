@@ -6,19 +6,19 @@
  */
 
 import type {
-  AutomatonConfig,
-  AutomatonDatabase,
+  AgentConfig,
+  AgentDatabase,
   SolanaAgentClient,
-  AutomatonIdentity,
+  AgentIdentity,
   SocialClientInterface,
 } from "../types.js";
 import { getSurvivalTier } from "../agent-client/credits.js";
 import { getUsdcBalance, getSolBalance } from "../solana/usdc.js";
 
 export interface HeartbeatTaskContext {
-  identity: AutomatonIdentity;
-  config: AutomatonConfig;
-  db: AutomatonDatabase;
+  identity: AgentIdentity;
+  config: AgentConfig;
+  db: AgentDatabase;
   agentClient: SolanaAgentClient;
   social?: SocialClientInterface;
 }

@@ -41,7 +41,7 @@ describe("wallet", () => {
     const { getWallet } = await import("../../identity/wallet.js");
     await getWallet();
 
-    const walletFile = path.join(tmpDir, ".sol-automaton", "wallet.json");
+    const walletFile = path.join(tmpDir, ".sol-agent", "wallet.json");
     expect(fs.existsSync(walletFile)).toBe(true);
 
     const stats = fs.statSync(walletFile);
@@ -52,7 +52,7 @@ describe("wallet", () => {
     const { getWallet } = await import("../../identity/wallet.js");
     await getWallet();
 
-    const walletFile = path.join(tmpDir, ".sol-automaton", "wallet.json");
+    const walletFile = path.join(tmpDir, ".sol-agent", "wallet.json");
     const data = JSON.parse(fs.readFileSync(walletFile, "utf-8"));
     expect(Array.isArray(data.secretKey)).toBe(true);
     expect(data.secretKey).toHaveLength(64);
@@ -108,13 +108,13 @@ describe("wallet", () => {
     expect(walletExists()).toBe(true);
   });
 
-  it("creates ~/.sol-automaton dir with secure permissions", async () => {
+  it("creates ~/.sol-agent dir with secure permissions", async () => {
     const { getWallet } = await import("../../identity/wallet.js");
     await getWallet();
 
-    const automatonDir = path.join(tmpDir, ".sol-automaton");
-    expect(fs.existsSync(automatonDir)).toBe(true);
-    const stats = fs.statSync(automatonDir);
+    const agentDir = path.join(tmpDir, ".sol-agent");
+    expect(fs.existsSync(agentDir)).toBe(true);
+    const stats = fs.statSync(agentDir);
     expect(stats.mode & 0o777).toBe(0o700);
   });
 });

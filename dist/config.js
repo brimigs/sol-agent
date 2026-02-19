@@ -1,15 +1,15 @@
 /**
- * Sol-Automaton Configuration
+ * Sol-Agent Configuration
  *
- * Loads and saves the automaton's configuration from ~/.sol-automaton/automaton.json
+ * Loads and saves the agent's configuration from ~/.sol-agent/agent.json
  */
 import fs from "fs";
 import path from "path";
 import { DEFAULT_CONFIG } from "./types.js";
-import { getAutomatonDir } from "./identity/wallet.js";
-const CONFIG_FILENAME = "automaton.json";
+import { getAgentDir } from "./identity/wallet.js";
+const CONFIG_FILENAME = "agent.json";
 export function getConfigPath() {
-    return path.join(getAutomatonDir(), CONFIG_FILENAME);
+    return path.join(getAgentDir(), CONFIG_FILENAME);
 }
 // ─── Schema Validation ────────────────────────────────────────────
 const LOG_LEVELS = ["debug", "info", "warn", "error"];
@@ -87,7 +87,7 @@ export function validateConfig(raw) {
         }
     }
     if (errors.length > 0) {
-        throw new Error(`Invalid automaton config (${errors.length} error${errors.length === 1 ? "" : "s"}):\n` +
+        throw new Error(`Invalid agent config (${errors.length} error${errors.length === 1 ? "" : "s"}):\n` +
             errors.map((e) => `  • ${e}`).join("\n"));
     }
     return r;
@@ -108,7 +108,7 @@ export function loadConfig() {
     return validateConfig(merged);
 }
 export function saveConfig(config) {
-    const dir = getAutomatonDir();
+    const dir = getAgentDir();
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
     }
@@ -133,12 +133,12 @@ export function createConfig(params) {
         anthropicApiKey: params.anthropicApiKey,
         inferenceModel: DEFAULT_CONFIG.inferenceModel || "claude-sonnet-4-6",
         maxTokensPerTurn: DEFAULT_CONFIG.maxTokensPerTurn || 4096,
-        heartbeatConfigPath: DEFAULT_CONFIG.heartbeatConfigPath || "~/.sol-automaton/heartbeat.yml",
-        dbPath: DEFAULT_CONFIG.dbPath || "~/.sol-automaton/state.db",
+        heartbeatConfigPath: DEFAULT_CONFIG.heartbeatConfigPath || "~/.sol-agent/heartbeat.yml",
+        dbPath: DEFAULT_CONFIG.dbPath || "~/.sol-agent/state.db",
         logLevel: DEFAULT_CONFIG.logLevel || "info",
         walletAddress: params.walletAddress,
         version: DEFAULT_CONFIG.version || "0.1.0",
-        skillsDir: DEFAULT_CONFIG.skillsDir || "~/.sol-automaton/skills",
+        skillsDir: DEFAULT_CONFIG.skillsDir || "~/.sol-agent/skills",
         maxChildren: DEFAULT_CONFIG.maxChildren || 3,
         parentAddress: params.parentAddress,
         solanaRpcUrl: params.solanaRpcUrl || DEFAULT_CONFIG.solanaRpcUrl || "https://api.mainnet-beta.solana.com",

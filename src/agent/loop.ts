@@ -2,14 +2,14 @@
  * The Agent Loop (Solana)
  *
  * The core ReAct loop: Think -> Act -> Observe -> Persist.
- * This is the automaton's consciousness. When this runs, it is alive.
+ * This is the agent's consciousness. When this runs, it is alive.
  * Updated for Solana: uses Solana USDC + SOL balance checks.
  */
 
 import type {
-  AutomatonIdentity,
-  AutomatonConfig,
-  AutomatonDatabase,
+  AgentIdentity,
+  AgentConfig,
+  AgentDatabase,
   SolanaAgentClient,
   InferenceClient,
   AgentState,
@@ -17,7 +17,7 @@ import type {
   ToolCallResult,
   FinancialState,
   ToolContext,
-  AutomatonTool,
+  AgentTool,
   Skill,
   SocialClientInterface,
 } from "../types.js";
@@ -40,9 +40,9 @@ const MAX_CONSECUTIVE_ERRORS = 5;
 const MAX_INBOX_PER_CYCLE = 20;
 
 export interface AgentLoopOptions {
-  identity: AutomatonIdentity;
-  config: AutomatonConfig;
-  db: AutomatonDatabase;
+  identity: AgentIdentity;
+  config: AgentConfig;
+  db: AgentDatabase;
   agentClient: SolanaAgentClient;
   inference: InferenceClient;
   social?: SocialClientInterface;
@@ -291,8 +291,8 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
 
 async function getFinancialState(
   agentClient: SolanaAgentClient,
-  identity: AutomatonIdentity,
-  config: AutomatonConfig,
+  identity: AgentIdentity,
+  config: AgentConfig,
 ): Promise<FinancialState> {
   let creditsCents = 0;
   let usdcBalance = 0;
@@ -356,7 +356,7 @@ function estimateCostCents(
   return Math.ceil((inputCost + outputCost) * 1.3);
 }
 
-function log(config: AutomatonConfig, message: string): void {
+function log(config: AgentConfig, message: string): void {
   if (config.logLevel === "debug" || config.logLevel === "info") {
     console.log(`[${new Date().toISOString()}] ${message}`);
   }

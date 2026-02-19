@@ -1,7 +1,7 @@
 /**
- * Sol-Automaton Database
+ * Sol-Agent Database
  *
- * SQLite-backed persistent state for the Solana automaton.
+ * SQLite-backed persistent state for the Solana agent.
  * Uses better-sqlite3 for synchronous, single-process access.
  * Updated for Solana: asset_address + tx_signature in registry.
  */
@@ -10,7 +10,7 @@ import Database from "better-sqlite3";
 import fs from "fs";
 import path from "path";
 import type {
-  AutomatonDatabase,
+  AgentDatabase,
   AgentTurn,
   AgentState,
   ToolCallResult,
@@ -19,7 +19,7 @@ import type {
   InstalledTool,
   ModificationEntry,
   Skill,
-  ChildAutomaton,
+  ChildAgent,
   ChildStatus,
   RegistryEntry,
   ReputationEntry,
@@ -27,7 +27,7 @@ import type {
 } from "../types.js";
 import { SCHEMA_VERSION, CREATE_TABLES, MIGRATION_V2, MIGRATION_V3 } from "./schema.js";
 
-export function createDatabase(dbPath: string): AutomatonDatabase {
+export function createDatabase(dbPath: string): AgentDatabase {
   const dir = path.dirname(dbPath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -192,16 +192,16 @@ export function createDatabase(dbPath: string): AutomatonDatabase {
     db.prepare("UPDATE skills SET enabled = 0 WHERE name = ?").run(name);
   };
 
-  const getChildren = (): ChildAutomaton[] => {
+  const getChildren = (): ChildAgent[] => {
     return (db.prepare("SELECT * FROM children ORDER BY created_at DESC").all() as any[]).map(deserializeChild);
   };
 
-  const getChildById = (id: string): ChildAutomaton | undefined => {
+  const getChildById = (id: string): ChildAgent | undefined => {
     const row = db.prepare("SELECT * FROM children WHERE id = ?").get(id) as any | undefined;
     return row ? deserializeChild(row) : undefined;
   };
 
-  const insertChild = (child: ChildAutomaton): void => {
+  const insertChild = (child: ChildAgent): void => {
     db.prepare(
       `INSERT INTO children (id, name, address, sandbox_id, genesis_prompt, creator_message, funded_amount_cents, status, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -340,7 +340,7 @@ function deserializeSkill(row: any): Skill {
     source: row.source, path: row.path, enabled: !!row.enabled, installedAt: row.installed_at };
 }
 
-function deserializeChild(row: any): ChildAutomaton {
+function deserializeChild(row: any): ChildAgent {
   return { id: row.id, name: row.name, address: row.address, sandboxId: row.sandbox_id,
     genesisPrompt: row.genesis_prompt, creatorMessage: row.creator_message ?? undefined,
     fundedAmountCents: row.funded_amount_cents, status: row.status, createdAt: row.created_at,

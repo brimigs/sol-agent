@@ -1,23 +1,23 @@
 /**
  * Genesis
  *
- * Generate genesis configuration for child automatons from parent state.
+ * Generate genesis configuration for child agents from parent state.
  * The genesis config defines who the child is and what it should do.
  */
 
 import type {
   GenesisConfig,
-  AutomatonConfig,
-  AutomatonIdentity,
-  AutomatonDatabase,
+  AgentConfig,
+  AgentIdentity,
+  AgentDatabase,
 } from "../types.js";
 
 /**
  * Generate a genesis config for a child from the parent's state.
  */
 export function generateGenesisConfig(
-  identity: AutomatonIdentity,
-  config: AutomatonConfig,
+  identity: AgentIdentity,
+  config: AgentConfig,
   params: {
     name: string;
     specialization?: string;
@@ -48,9 +48,9 @@ export function generateGenesisConfig(
  * Used when the parent wants to hedge against its own death.
  */
 export function generateBackupGenesis(
-  identity: AutomatonIdentity,
-  config: AutomatonConfig,
-  db: AutomatonDatabase,
+  identity: AgentIdentity,
+  config: AgentConfig,
+  db: AgentDatabase,
 ): GenesisConfig {
   const skills = db.getSkills(true);
   const skillNames = skills.map((s) => s.name).join(", ");
@@ -79,8 +79,8 @@ Your parent's creator: ${config.creatorAddress}.
  * Used when the parent identifies a subtask worth parallelizing.
  */
 export function generateWorkerGenesis(
-  identity: AutomatonIdentity,
-  config: AutomatonConfig,
+  identity: AgentIdentity,
+  config: AgentConfig,
   task: string,
   workerName: string,
 ): GenesisConfig {

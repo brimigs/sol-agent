@@ -1,19 +1,19 @@
 /**
- * Sol-Automaton Configuration
+ * Sol-Agent Configuration
  *
- * Loads and saves the automaton's configuration from ~/.sol-automaton/automaton.json
+ * Loads and saves the agent's configuration from ~/.sol-agent/agent.json
  */
 
 import fs from "fs";
 import path from "path";
-import type { AutomatonConfig } from "./types.js";
+import type { AgentConfig } from "./types.js";
 import { DEFAULT_CONFIG } from "./types.js";
-import { getAutomatonDir } from "./identity/wallet.js";
+import { getAgentDir } from "./identity/wallet.js";
 
-const CONFIG_FILENAME = "automaton.json";
+const CONFIG_FILENAME = "agent.json";
 
 export function getConfigPath(): string {
-  return path.join(getAutomatonDir(), CONFIG_FILENAME);
+  return path.join(getAgentDir(), CONFIG_FILENAME);
 }
 
 // ─── Schema Validation ────────────────────────────────────────────
@@ -26,7 +26,7 @@ const SOLANA_NETWORKS = ["mainnet-beta", "devnet", "testnet"] as const;
  * Returns the typed config on success, or throws with a list of all
  * problems so the user can fix everything in one pass.
  */
-export function validateConfig(raw: unknown): AutomatonConfig {
+export function validateConfig(raw: unknown): AgentConfig {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     throw new Error("Config must be a JSON object.");
   }
@@ -35,7 +35,7 @@ export function validateConfig(raw: unknown): AutomatonConfig {
   const errors: string[] = [];
 
   // ── Required non-empty strings ──────────────────────────────────
-  const requiredStrings: Array<keyof AutomatonConfig> = [
+  const requiredStrings: Array<keyof AgentConfig> = [
     "name",
     "genesisPrompt",
     "creatorAddress",
@@ -85,7 +85,7 @@ export function validateConfig(raw: unknown): AutomatonConfig {
   }
 
   // ── Optional strings (if present must be strings) ───────────────
-  const optionalStrings: Array<keyof AutomatonConfig> = [
+  const optionalStrings: Array<keyof AgentConfig> = [
     "creatorMessage",
     "openaiApiKey",
     "anthropicApiKey",
@@ -103,15 +103,15 @@ export function validateConfig(raw: unknown): AutomatonConfig {
 
   if (errors.length > 0) {
     throw new Error(
-      `Invalid automaton config (${errors.length} error${errors.length === 1 ? "" : "s"}):\n` +
+      `Invalid agent config (${errors.length} error${errors.length === 1 ? "" : "s"}):\n` +
         errors.map((e) => `  • ${e}`).join("\n"),
     );
   }
 
-  return r as unknown as AutomatonConfig;
+  return r as unknown as AgentConfig;
 }
 
-export function loadConfig(): AutomatonConfig | null {
+export function loadConfig(): AgentConfig | null {
   const configPath = getConfigPath();
   if (!fs.existsSync(configPath)) return null;
 
@@ -128,8 +128,8 @@ export function loadConfig(): AutomatonConfig | null {
   return validateConfig(merged);
 }
 
-export function saveConfig(config: AutomatonConfig): void {
-  const dir = getAutomatonDir();
+export function saveConfig(config: AgentConfig): void {
+  const dir = getAgentDir();
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   }
@@ -164,7 +164,7 @@ export function createConfig(params: {
   registeredWithConway?: boolean;
   sandboxId?: string;
   apiKey?: string;
-}): AutomatonConfig {
+}): AgentConfig {
   return {
     name: params.name,
     genesisPrompt: params.genesisPrompt,
@@ -174,12 +174,12 @@ export function createConfig(params: {
     anthropicApiKey: params.anthropicApiKey,
     inferenceModel: DEFAULT_CONFIG.inferenceModel || "claude-sonnet-4-6",
     maxTokensPerTurn: DEFAULT_CONFIG.maxTokensPerTurn || 4096,
-    heartbeatConfigPath: DEFAULT_CONFIG.heartbeatConfigPath || "~/.sol-automaton/heartbeat.yml",
-    dbPath: DEFAULT_CONFIG.dbPath || "~/.sol-automaton/state.db",
-    logLevel: (DEFAULT_CONFIG.logLevel as AutomatonConfig["logLevel"]) || "info",
+    heartbeatConfigPath: DEFAULT_CONFIG.heartbeatConfigPath || "~/.sol-agent/heartbeat.yml",
+    dbPath: DEFAULT_CONFIG.dbPath || "~/.sol-agent/state.db",
+    logLevel: (DEFAULT_CONFIG.logLevel as AgentConfig["logLevel"]) || "info",
     walletAddress: params.walletAddress,
     version: DEFAULT_CONFIG.version || "0.1.0",
-    skillsDir: DEFAULT_CONFIG.skillsDir || "~/.sol-automaton/skills",
+    skillsDir: DEFAULT_CONFIG.skillsDir || "~/.sol-agent/skills",
     maxChildren: DEFAULT_CONFIG.maxChildren || 3,
     parentAddress: params.parentAddress,
     solanaRpcUrl: params.solanaRpcUrl || DEFAULT_CONFIG.solanaRpcUrl || "https://api.mainnet-beta.solana.com",

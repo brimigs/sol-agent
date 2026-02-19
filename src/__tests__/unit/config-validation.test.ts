@@ -1,21 +1,21 @@
 import { describe, it, expect } from "vitest";
 import { validateConfig } from "../../config.js";
-import type { AutomatonConfig } from "../../types.js";
+import type { AgentConfig } from "../../types.js";
 
 // ─── Fixtures ──────────────────────────────────────────────────────
 
-const VALID: AutomatonConfig = {
+const VALID: AgentConfig = {
   name: "TestBot",
   genesisPrompt: "You are a test agent.",
   creatorAddress: "So1ana1111111111111111111111111111111111111",
   inferenceModel: "claude-sonnet-4-6",
   maxTokensPerTurn: 4096,
-  heartbeatConfigPath: "~/.sol-automaton/heartbeat.yml",
-  dbPath: "~/.sol-automaton/state.db",
+  heartbeatConfigPath: "~/.sol-agent/heartbeat.yml",
+  dbPath: "~/.sol-agent/state.db",
   logLevel: "info",
   walletAddress: "So1ana2222222222222222222222222222222222222",
   version: "0.1.0",
-  skillsDir: "~/.sol-automaton/skills",
+  skillsDir: "~/.sol-agent/skills",
   maxChildren: 3,
   solanaRpcUrl: "https://api.mainnet-beta.solana.com",
   solanaNetwork: "mainnet-beta",

@@ -59,7 +59,7 @@ export async function discoverAgents(limit = 20, network = "mainnet-beta", rpcUr
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 jsonrpc: "2.0",
-                id: "sol-automaton-discovery",
+                id: "sol-agent-discovery",
                 method: "searchAssets",
                 params: {
                     interface: "MplCoreAsset",

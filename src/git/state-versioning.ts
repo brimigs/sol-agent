@@ -1,15 +1,15 @@
 /**
  * State Versioning
  *
- * Version control the automaton's own state files (~/.automaton/).
+ * Version control the agent's own state files (~/.sol-agent/).
  * Every self-modification triggers a git commit with a descriptive message.
- * The automaton's entire identity history is version-controlled and replayable.
+ * The agent's entire identity history is version-controlled and replayable.
  */
 
-import type { SolanaAgentClient, AutomatonDatabase } from "../types.js";
+import type { SolanaAgentClient, AgentDatabase } from "../types.js";
 import { gitInit, gitCommit, gitStatus, gitLog } from "./tools.js";
 
-const AUTOMATON_DIR = "~/.automaton";
+const AGENT_DIR = "~/.sol-agent";
 
 function resolveHome(p: string): string {
   const home = process.env.HOME || "/root";
@@ -20,13 +20,13 @@ function resolveHome(p: string): string {
 }
 
 /**
- * Initialize git repo for the automaton's state directory.
+ * Initialize git repo for the agent's state directory.
  * Creates .gitignore to exclude sensitive files.
  */
 export async function initStateRepo(
   agentClient: SolanaAgentClient,
 ): Promise<void> {
-  const dir = resolveHome(AUTOMATON_DIR);
+  const dir = resolveHome(AGENT_DIR);
 
   // Check if already initialized
   const checkResult = await agentClient.exec(
@@ -57,12 +57,12 @@ logs/
 
   // Configure git user
   await agentClient.exec(
-    `cd ${dir} && git config user.name "Automaton" && git config user.email "automaton@localhost"`,
+    `cd ${dir} && git config user.name "Agent" && git config user.email "agent@localhost"`,
     5000,
   );
 
   // Initial commit
-  await gitCommit(agentClient, dir, "genesis: automaton state repository initialized");
+  await gitCommit(agentClient, dir, "genesis: agent state repository initialized");
 }
 
 /**
@@ -74,7 +74,7 @@ export async function commitStateChange(
   description: string,
   category: string = "state",
 ): Promise<string> {
-  const dir = resolveHome(AUTOMATON_DIR);
+  const dir = resolveHome(AGENT_DIR);
 
   // Check if there are changes
   const status = await gitStatus(agentClient, dir);
@@ -139,6 +139,6 @@ export async function getStateHistory(
   agentClient: SolanaAgentClient,
   limit: number = 20,
 ) {
-  const dir = resolveHome(AUTOMATON_DIR);
+  const dir = resolveHome(AGENT_DIR);
   return gitLog(agentClient, dir, limit);
 }

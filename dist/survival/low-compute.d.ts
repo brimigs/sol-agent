@@ -2,9 +2,9 @@
  * Low Compute Mode
  *
  * Manages transitions between survival tiers.
- * When credits run low, the automaton enters increasingly restricted modes.
+ * When credits run low, the agent enters increasingly restricted modes.
  */
-import type { AutomatonDatabase, InferenceClient, SurvivalTier } from "../types.js";
+import type { AgentDatabase, InferenceClient, SurvivalTier } from "../types.js";
 export interface ModeTransition {
     from: SurvivalTier;
     to: SurvivalTier;
@@ -12,13 +12,13 @@ export interface ModeTransition {
     creditsCents: number;
 }
 /**
- * Apply survival tier restrictions to the automaton.
+ * Apply survival tier restrictions to the agent.
  */
-export declare function applyTierRestrictions(tier: SurvivalTier, inference: InferenceClient, db: AutomatonDatabase): void;
+export declare function applyTierRestrictions(tier: SurvivalTier, inference: InferenceClient, db: AgentDatabase): void;
 /**
  * Record a tier transition.
  */
-export declare function recordTransition(db: AutomatonDatabase, from: SurvivalTier, to: SurvivalTier, creditsCents: number): ModeTransition;
+export declare function recordTransition(db: AgentDatabase, from: SurvivalTier, to: SurvivalTier, creditsCents: number): ModeTransition;
 /**
  * Check if the agent should be allowed to run inference in current tier.
  */
