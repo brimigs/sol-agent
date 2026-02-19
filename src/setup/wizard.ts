@@ -139,6 +139,10 @@ export async function runSetupWizard(): Promise<AgentConfig> {
   ];
   const constitutionSrc = candidateSrcs.find(fs.existsSync);
   if (constitutionSrc) {
+    // Remove read-only flag if the file already exists from a prior setup run
+    if (fs.existsSync(constitutionDst)) {
+      fs.chmodSync(constitutionDst, 0o644);
+    }
     fs.copyFileSync(constitutionSrc, constitutionDst);
     fs.chmodSync(constitutionDst, 0o444); // read-only
     console.log(chalk.green("  rules.md installed (read-only)"));
