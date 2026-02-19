@@ -22,6 +22,8 @@ interface InferenceClientOptions {
   lowComputeModel?: string;
   openaiApiKey?: string;
   anthropicApiKey?: string;
+  /** Default per-request timeout in ms. Overridable per-call via InferenceOptions.timeoutMs. Default: 120 000 ms */
+  requestTimeoutMs?: number;
 }
 
 type InferenceBackend = "openai" | "anthropic" | "unknown";
@@ -46,6 +48,7 @@ export function createInferenceClient(
   ): Promise<InferenceResponse> => {
     const model = opts?.model || currentModel;
     const tools = opts?.tools;
+    const timeoutMs = opts?.timeoutMs ?? options.requestTimeoutMs ?? 120_000;
 
     // Newer models (o-series, gpt-5.x, gpt-4.1) require max_completion_tokens
     const usesCompletionTokens = /^(o[1-9]|gpt-5|gpt-4\.1)/.test(model);
@@ -85,6 +88,7 @@ export function createInferenceClient(
         tools,
         temperature: opts?.temperature,
         anthropicApiKey: anthropicApiKey as string,
+        timeoutMs,
       });
     }
 
@@ -99,6 +103,7 @@ export function createInferenceClient(
       body,
       apiUrl: "https://api.openai.com",
       apiKey: openaiApiKey as string,
+      timeoutMs,
     });
   };
 
@@ -162,15 +167,27 @@ async function chatViaOpenAiCompatible(params: {
   body: Record<string, unknown>;
   apiUrl: string;
   apiKey: string;
+  timeoutMs: number;
 }): Promise<InferenceResponse> {
-  const resp = await fetch(`${params.apiUrl}/v1/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${params.apiKey}`,
-    },
-    body: JSON.stringify(params.body),
-  });
+  let resp: Response;
+  try {
+    resp = await fetch(`${params.apiUrl}/v1/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${params.apiKey}`,
+      },
+      body: JSON.stringify(params.body),
+      signal: AbortSignal.timeout(params.timeoutMs),
+    });
+  } catch (err: any) {
+    if (err.name === "TimeoutError" || err.name === "AbortError") {
+      throw new Error(
+        `Inference request timed out after ${params.timeoutMs}ms (model: ${params.model})`,
+      );
+    }
+    throw err;
+  }
 
   if (!resp.ok) {
     const text = await resp.text();
@@ -179,14 +196,35 @@ async function chatViaOpenAiCompatible(params: {
     );
   }
 
-  const data = await resp.json() as any;
-  const choice = data.choices?.[0];
+  let data: any;
+  try {
+    data = await resp.json();
+  } catch (e: any) {
+    throw new Error(`Inference API (openai) returned non-JSON on status ${resp.status}: ${e.message}`);
+  }
 
+  // Some providers return a top-level error object on a 200 status
+  if (data?.error) {
+    throw new Error(`Inference API (openai) error: ${data.error.message || JSON.stringify(data.error)}`);
+  }
+
+  const choice = data.choices?.[0];
   if (!choice) {
-    throw new Error("No completion choice returned from inference");
+    throw new Error(
+      `No completion choice returned from inference API (model: ${params.model}). ` +
+      `Response keys: ${Object.keys(data ?? {}).join(", ")}`,
+    );
   }
 
   const message = choice.message;
+  if (!message || typeof message.role !== "string") {
+    const detail = choice.error
+      ? JSON.stringify(choice.error)
+      : JSON.stringify(choice);
+    throw new Error(
+      `Inference choice has no valid message field (model: ${params.model}): ${detail.slice(0, 200)}`,
+    );
+  }
   const usage: TokenUsage = {
     promptTokens: data.usage?.prompt_tokens || 0,
     completionTokens: data.usage?.completion_tokens || 0,
@@ -224,6 +262,7 @@ async function chatViaAnthropic(params: {
   tools?: InferenceToolDefinition[];
   temperature?: number;
   anthropicApiKey: string;
+  timeoutMs: number;
 }): Promise<InferenceResponse> {
   const transformed = transformMessagesForAnthropic(params.messages);
   const body: Record<string, unknown> = {
@@ -252,22 +291,44 @@ async function chatViaAnthropic(params: {
     body.tool_choice = { type: "auto" };
   }
 
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": params.anthropicApiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify(body),
-  });
+  let resp: Response;
+  try {
+    resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": params.anthropicApiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(params.timeoutMs),
+    });
+  } catch (err: any) {
+    if (err.name === "TimeoutError" || err.name === "AbortError") {
+      throw new Error(
+        `Inference request timed out after ${params.timeoutMs}ms (model: ${params.model})`,
+      );
+    }
+    throw err;
+  }
 
   if (!resp.ok) {
     const text = await resp.text();
     throw new Error(`Inference error (anthropic): ${resp.status}: ${text}`);
   }
 
-  const data = await resp.json() as any;
+  let data: any;
+  try {
+    data = await resp.json();
+  } catch (e: any) {
+    throw new Error(`Inference API (anthropic) returned non-JSON on status ${resp.status}: ${e.message}`);
+  }
+
+  // Anthropic-compatible proxies occasionally return {"type":"error",...} on 200
+  if (data?.type === "error") {
+    throw new Error(`Inference API (anthropic) error: ${data.error?.message || JSON.stringify(data.error)}`);
+  }
+
   const content = Array.isArray(data.content) ? data.content : [];
   const textBlocks = content.filter((c: any) => c?.type === "text");
   const toolUseBlocks = content.filter((c: any) => c?.type === "tool_use");

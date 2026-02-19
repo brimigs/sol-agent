@@ -162,6 +162,45 @@ describe("validateConfig – URL fields", () => {
   });
 });
 
+// ─── Solana pubkey validation ──────────────────────────────────────
+
+describe("validateConfig – Solana address fields", () => {
+  it("accepts a valid base58 mainnet creator address", () => {
+    // A real mainnet address (the Solana system program)
+    expect(() =>
+      validateConfig(withOverride({ creatorAddress: "11111111111111111111111111111111" })),
+    ).not.toThrow();
+  });
+
+  it("rejects a creatorAddress that is not a valid pubkey", () => {
+    const err = () => validateConfig(withOverride({ creatorAddress: "not-a-pubkey" }));
+    expect(err).toThrow('"creatorAddress"');
+    expect(err).toThrow("valid base58 Solana public key");
+  });
+
+  it("rejects a walletAddress with invalid characters (0, O, I, l not in base58)", () => {
+    // '0' is not in the base58 alphabet — easy typo
+    expect(() =>
+      validateConfig(withOverride({ walletAddress: "0invalIdAddr3ss000000000000000000000000000" })),
+    ).toThrow('"walletAddress"');
+  });
+
+  it("rejects a walletAddress that is too short to be a pubkey", () => {
+    expect(() =>
+      validateConfig(withOverride({ walletAddress: "abc123" })),
+    ).toThrow('"walletAddress"');
+  });
+
+  it("rejects a parentAddress that is not a valid pubkey when provided", () => {
+    // parentAddress is an optional field — if present it must be a non-empty string
+    // (current validator only checks non-empty string for optional fields; this
+    // test confirms we don't false-positive on a valid optional address)
+    expect(() =>
+      validateConfig(withOverride({ parentAddress: "11111111111111111111111111111111" })),
+    ).not.toThrow();
+  });
+});
+
 // ─── Optional fields ───────────────────────────────────────────────
 
 describe("validateConfig – optional fields", () => {

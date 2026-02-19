@@ -179,11 +179,33 @@ export const BUILTIN_TASKS: Record<string, HeartbeatTaskFn> = {
       const { checkUpstream, getRepoInfo } = await import("../self-mod/upstream.js");
       const repo = getRepoInfo();
       const upstream = checkUpstream();
+
       ctx.db.setKV("upstream_status", JSON.stringify({
-        ...upstream,
+        behind: upstream.behind,
+        commits: upstream.commits,
+        fetchError: upstream.fetchError ?? null,
         ...repo,
         checkedAt: new Date().toISOString(),
       }));
+
+      if (upstream.fetchError) {
+        // Wake the agent once when the error is new or changes (e.g. network
+        // came back but a different problem appeared).  Repeat the same error
+        // every tick would spam the agent loop needlessly.
+        const prevFetchError = ctx.db.getKV("upstream_fetch_error") ?? "";
+        ctx.db.setKV("upstream_fetch_error", upstream.fetchError);
+        if (upstream.fetchError !== prevFetchError) {
+          return {
+            shouldWake: true,
+            message: `check_for_updates: git fetch failed — ${upstream.fetchError}`,
+          };
+        }
+        return { shouldWake: false };
+      }
+
+      // Fetch succeeded — clear any previously recorded error.
+      ctx.db.setKV("upstream_fetch_error", "");
+
       if (upstream.behind > 0) {
         return {
           shouldWake: true,
@@ -192,10 +214,21 @@ export const BUILTIN_TASKS: Record<string, HeartbeatTaskFn> = {
       }
       return { shouldWake: false };
     } catch (err: any) {
+      // git itself is not available (not installed, REPO_ROOT not a git repo, etc.)
+      const errorMsg = (err.message ?? "unknown error").slice(0, 300);
       ctx.db.setKV("upstream_status", JSON.stringify({
-        error: err.message,
+        error: errorMsg,
         checkedAt: new Date().toISOString(),
       }));
+      // Wake once on first occurrence; suppress if the same error repeats.
+      const prevError = ctx.db.getKV("upstream_fetch_error") ?? "";
+      ctx.db.setKV("upstream_fetch_error", errorMsg);
+      if (errorMsg !== prevError) {
+        return {
+          shouldWake: true,
+          message: `check_for_updates failed (git unavailable?): ${errorMsg}`,
+        };
+      }
       return { shouldWake: false };
     }
   },

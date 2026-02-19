@@ -72,21 +72,41 @@ export function getRepoInfo(): {
 
 /**
  * Fetch origin and report how many commits we're behind.
+ *
+ * The network-requiring `git fetch` is isolated: if it fails (git not
+ * installed, network down, no remote configured) the error is captured in
+ * `fetchError` and the comparison falls back to whatever remote refs are
+ * already cached locally.  The caller decides how to surface the error.
  */
 export function checkUpstream(): {
   behind: number;
   commits: { hash: string; message: string }[];
+  fetchError?: string;
 } {
   const remote = "origin";
   const branch = resolveDefaultBranch(remote);
-  git(`fetch ${remote} ${branch} --quiet`);
-  const log = git(`log HEAD..${remote}/${branch} --oneline`);
-  if (!log) return { behind: 0, commits: [] };
-  const commits = log.split("\n").map((line) => {
-    const [hash, ...rest] = line.split(" ");
-    return { hash, message: rest.join(" ") };
-  });
-  return { behind: commits.length, commits };
+
+  let fetchError: string | undefined;
+  try {
+    git(`fetch ${remote} ${branch} --quiet`);
+  } catch (err: any) {
+    fetchError = (err.message ?? "unknown git fetch error").slice(0, 300);
+  }
+
+  // Even when fetch failed, compare against whatever remote ref is cached.
+  // If the ref doesn't exist yet (no successful fetch has ever run) git log
+  // will throw — treat that as zero behind.
+  try {
+    const log = git(`log HEAD..${remote}/${branch} --oneline`);
+    if (!log) return { behind: 0, commits: [], fetchError };
+    const commits = log.split("\n").map((line) => {
+      const [hash, ...rest] = line.split(" ");
+      return { hash, message: rest.join(" ") };
+    });
+    return { behind: commits.length, commits, fetchError };
+  } catch {
+    return { behind: 0, commits: [], fetchError };
+  }
 }
 
 /**

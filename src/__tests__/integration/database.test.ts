@@ -392,6 +392,55 @@ describe("inbox messages", () => {
     expect(msgs).toHaveLength(100);
     expect(msgs.some((m) => m.id === "after-free")).toBe(true);
   });
+
+  it("content size: stores small messages unchanged", () => {
+    const small = { ...makeMsg("small-1"), content: "Hello, agent!" };
+    db.insertInboxMessage(small);
+    const [stored] = db.getUnprocessedInboxMessages(1);
+    expect(stored.content).toBe("Hello, agent!");
+  });
+
+  it("content size: replaces oversized content with a rejection notice", () => {
+    const bigContent = "A".repeat(65 * 1024); // 65 KB — just over the 64 KB limit
+    db.insertInboxMessage({ ...makeMsg("big-1"), content: bigContent, from: "BigSender" });
+
+    const msgs = db.getUnprocessedInboxMessages(10);
+    const stored = msgs.find((m) => m.id === "big-1");
+    expect(stored).toBeDefined();
+    // Content must be replaced, not stored as-is
+    expect(stored!.content).not.toBe(bigContent);
+    // Notice must mention the rejection and the size
+    expect(stored!.content).toMatch(/rejected/i);
+    expect(stored!.content).toMatch(/65/); // byte count present
+  });
+
+  it("content size: oversized message is still inserted (not dropped)", () => {
+    const bigContent = "B".repeat(70 * 1024);
+    db.insertInboxMessage({ ...makeMsg("big-2"), content: bigContent, from: "BigSender2" });
+
+    const msgs = db.getUnprocessedInboxMessages(10);
+    expect(msgs.some((m) => m.id === "big-2")).toBe(true);
+  });
+
+  it("content size: notice itself is well under the size limit", () => {
+    const bigContent = "C".repeat(1_000_000); // 1 MB
+    db.insertInboxMessage({ ...makeMsg("huge-1"), content: bigContent, from: "HugeSender" });
+
+    const msgs = db.getUnprocessedInboxMessages(10);
+    const stored = msgs.find((m) => m.id === "huge-1");
+    expect(stored).toBeDefined();
+    expect(stored!.content.length).toBeLessThan(64 * 1024);
+  });
+
+  it("content size: a message exactly at the limit is stored as-is", () => {
+    const exactContent = "D".repeat(64 * 1024); // exactly 64 KB
+    db.insertInboxMessage({ ...makeMsg("exact-1"), content: exactContent, from: "ExactSender" });
+
+    const msgs = db.getUnprocessedInboxMessages(10);
+    const stored = msgs.find((m) => m.id === "exact-1");
+    expect(stored).toBeDefined();
+    expect(stored!.content).toBe(exactContent);
+  });
 });
 
 // ─── Agent State ───────────────────────────────────────────────

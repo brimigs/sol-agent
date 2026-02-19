@@ -252,6 +252,13 @@ export function createDatabase(dbPath: string): AgentDatabase {
   const INBOX_PER_SENDER_LIMIT = 10;
   // Maximum total unprocessed messages in the queue at any time.
   const INBOX_GLOBAL_LIMIT = 100;
+  // Maximum byte length for a single message's content.
+  // Prevents large payloads (e.g. base64-encoded blobs) from exhausting the
+  // LLM context window or hitting SQLite's row-size limits. 64 KB is generous
+  // for any legitimate text message. Oversized content is replaced with a
+  // rejection notice so the message record still lands in the queue and the
+  // agent can inform the sender to retry with a smaller payload.
+  const MAX_INBOX_MESSAGE_BYTES = 64 * 1024; // 64 KB
 
   const insertInboxMessage = (msg: InboxMessage): void => {
     // Global queue cap — prevents unbounded memory / compute growth.
@@ -268,10 +275,20 @@ export function createDatabase(dbPath: string): AgentDatabase {
     ).cnt as number;
     if (senderCount >= INBOX_PER_SENDER_LIMIT) return;
 
+    // Content size cap — replace oversized content with a notice rather than
+    // silently dropping the message. The agent can then tell the sender why
+    // their message was rejected and ask them to send a smaller one.
+    const content =
+      msg.content.length <= MAX_INBOX_MESSAGE_BYTES
+        ? msg.content
+        : `[Message rejected: content too large ` +
+          `(${msg.content.length.toLocaleString()} bytes, limit ${MAX_INBOX_MESSAGE_BYTES.toLocaleString()} bytes / ${MAX_INBOX_MESSAGE_BYTES / 1024}KB). ` +
+          `Please resend as plain text under ${MAX_INBOX_MESSAGE_BYTES / 1024}KB.]`;
+
     db.prepare(
       `INSERT OR IGNORE INTO inbox_messages (id, from_address, content, received_at, reply_to)
        VALUES (?, ?, ?, ?, ?)`,
-    ).run(msg.id, msg.from, msg.content, msg.createdAt || new Date().toISOString(), msg.replyTo ?? null);
+    ).run(msg.id, msg.from, content, msg.createdAt || new Date().toISOString(), msg.replyTo ?? null);
   };
 
   const getUnprocessedInboxMessages = (limit: number): InboxMessage[] => {

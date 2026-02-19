@@ -37,12 +37,24 @@ export interface HeartbeatDaemon {
 /**
  * Create and return the heartbeat daemon.
  */
+// After this many consecutive full-tick failures the daemon stops itself and
+// wakes the agent loop so it knows the heartbeat has died.
+const MAX_CONSECUTIVE_TICK_ERRORS = 5;
+
+// After this many consecutive failures for a single task the agent loop is
+// woken so it can inspect and potentially self-heal.
+const MAX_CONSECUTIVE_TASK_ERRORS = 3;
+
 export function createHeartbeatDaemon(
   options: HeartbeatDaemonOptions,
 ): HeartbeatDaemon {
   const { identity, config, db, agentClient, social, onWakeRequest } = options;
   let intervalId: ReturnType<typeof setInterval> | null = null;
   let running = false;
+
+  // Consecutive-failure counters — reset to 0 on any success.
+  let consecutiveTickErrors = 0;
+  const consecutiveTaskErrors = new Map<string, number>();
 
   const taskContext: HeartbeatTaskContext = {
     identity,
@@ -75,6 +87,11 @@ export function createHeartbeatDaemon(
 
   /**
    * Execute a single heartbeat task.
+   *
+   * Failures are counted per-task. After MAX_CONSECUTIVE_TASK_ERRORS
+   * consecutive failures the agent loop is woken via onWakeRequest so it
+   * can log the situation and potentially self-heal. The counter resets on
+   * any successful execution.
    */
   async function executeTask(entry: HeartbeatEntry): Promise<void> {
     const taskFn = BUILTIN_TASKS[entry.task];
@@ -85,6 +102,9 @@ export function createHeartbeatDaemon(
 
     try {
       const result = await taskFn(taskContext);
+
+      // Success — reset this task's error counter.
+      consecutiveTaskErrors.set(entry.name, 0);
 
       // Update last run
       const now = new Date().toISOString();
@@ -97,10 +117,20 @@ export function createHeartbeatDaemon(
         );
       }
     } catch (err: any) {
-      // Log error but don't crash the daemon
+      const prev = consecutiveTaskErrors.get(entry.name) ?? 0;
+      const count = prev + 1;
+      consecutiveTaskErrors.set(entry.name, count);
+
       console.error(
-        `[HEARTBEAT] Task '${entry.name}' failed: ${err.message}`,
+        `[HEARTBEAT] Task '${entry.name}' failed ` +
+          `(${count}/${MAX_CONSECUTIVE_TASK_ERRORS}): ${err.message}`,
       );
+
+      if (count >= MAX_CONSECUTIVE_TASK_ERRORS && onWakeRequest) {
+        onWakeRequest(
+          `Heartbeat task '${entry.name}' has failed ${count} consecutive times: ${err.message}`,
+        );
+      }
     }
   }
 
@@ -141,6 +171,39 @@ export function createHeartbeatDaemon(
 
   // ─── Public API ──────────────────────────────────────────────
 
+  /**
+   * Run one tick, tracking consecutive failures.
+   *
+   * On success the tick counter resets. After MAX_CONSECUTIVE_TICK_ERRORS
+   * consecutive failures the daemon stops itself and fires onWakeRequest so
+   * the agent loop knows the heartbeat has died rather than running silently
+   * with a non-functional pulse.
+   */
+  async function safeTick(): Promise<void> {
+    try {
+      await tick();
+      consecutiveTickErrors = 0; // reset on any successful tick
+    } catch (err: any) {
+      consecutiveTickErrors++;
+      console.error(
+        `[HEARTBEAT] Tick failed ` +
+          `(${consecutiveTickErrors}/${MAX_CONSECUTIVE_TICK_ERRORS}): ${err.message}`,
+      );
+
+      if (consecutiveTickErrors >= MAX_CONSECUTIVE_TICK_ERRORS) {
+        console.error(
+          `[HEARTBEAT] ${MAX_CONSECUTIVE_TICK_ERRORS} consecutive tick failures — stopping daemon.`,
+        );
+        stop();
+        if (onWakeRequest) {
+          onWakeRequest(
+            `Heartbeat daemon stopped after ${consecutiveTickErrors} consecutive tick failures: ${err.message}`,
+          );
+        }
+      }
+    }
+  }
+
   const start = (): void => {
     if (running) return;
     running = true;
@@ -149,14 +212,10 @@ export function createHeartbeatDaemon(
     const tickMs = config.logLevel === "debug" ? 15_000 : 60_000;
 
     // Run first tick immediately
-    tick().catch((err) => {
-      console.error(`[HEARTBEAT] First tick failed: ${err.message}`);
-    });
+    safeTick();
 
     intervalId = setInterval(() => {
-      tick().catch((err) => {
-        console.error(`[HEARTBEAT] Tick failed: ${err.message}`);
-      });
+      safeTick();
     }, tickMs);
 
     console.log(

@@ -156,23 +156,62 @@ export async function startChild(
     10_000,
   );
 
-  // Give the process a moment to start, then verify it's alive
-  await new Promise((resolve) => setTimeout(resolve, 2_000));
-  const check = await agentClient.execInSandbox(
-    child.sandboxId,
-    "pgrep -f 'sol-agent --run' > /dev/null && echo running || echo not-running",
-    10_000,
-  );
+  // Poll sol-agent --status until the agent reaches a stable state.
+  //
+  // Why not pgrep: a single snapshot is unreliable in both directions.
+  //   - On a slow cold container, pgrep at t=2s finds the Node process while
+  //     it is still loading modules; if it crashes at t=4s the parent has
+  //     already marked the child "running".
+  //   - A healthy agent exits its own process after the first turn (it writes
+  //     sleep_until to the DB and returns), so a live process is not a
+  //     reliable health indicator either.
+  //
+  // sol-agent --status reads from the SQLite DB, which persists state even
+  // after the process exits. "sleeping" means the agent completed at least
+  // one turn successfully. "dead" means it ran out of credits or hit a fatal
+  // error. "setup" means it has not yet written any state (still loading, or
+  // never started).
+  const POLL_INTERVAL_MS = 3_000;
+  const MAX_POLLS = 10; // up to 30 s total
+  const SUCCESS_STATES = new Set(["waking", "running", "sleeping", "low_compute", "critical"]);
 
-  if (!check.stdout.trim().includes("running")) {
-    // Capture any startup error from the log
+  let agentStarted = false;
+  let lastStatus = "setup";
+
+  for (let attempt = 0; attempt < MAX_POLLS; attempt++) {
+    await new Promise<void>((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+
+    const statusResult = await agentClient.execInSandbox(
+      child.sandboxId,
+      "sol-agent --status 2>/dev/null || echo 'State: setup'",
+      10_000,
+    );
+
+    // Extract "State: <value>" from the status output block.
+    const match = statusResult.stdout.match(/State:\s+(\S+)/);
+    lastStatus = match?.[1] ?? "setup";
+
+    if (SUCCESS_STATES.has(lastStatus)) {
+      agentStarted = true;
+      break;
+    }
+
+    if (lastStatus === "dead") {
+      break; // Definitive failure — no point waiting further.
+    }
+  }
+
+  if (!agentStarted) {
     const logTail = await agentClient.execInSandbox(
       child.sandboxId,
-      "tail -20 /var/log/sol-agent.log 2>/dev/null || echo '(no log)'",
+      "tail -30 /var/log/sol-agent.log 2>/dev/null || echo '(no log)'",
       5_000,
     );
     throw new Error(
-      `Child ${childId} process did not start.\nLog:\n${logTail.stdout}`,
+      `Child ${childId} did not reach a running state within ` +
+        `${(MAX_POLLS * POLL_INTERVAL_MS) / 1_000}s ` +
+        `(last status: ${lastStatus || "unknown"}).\n` +
+        `Log tail:\n${logTail.stdout}`,
     );
   }
 

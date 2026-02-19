@@ -7,6 +7,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { PublicKey } from "@solana/web3.js";
 import type { AgentConfig } from "./types.js";
 import { DEFAULT_CONFIG, DEFAULT_INFERENCE_MODEL } from "./types.js";
 import { getAgentDir } from "./identity/wallet.js";
@@ -21,6 +22,20 @@ export function getConfigPath(): string {
 
 const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 const SOLANA_NETWORKS = ["mainnet-beta", "devnet", "testnet"] as const;
+
+/**
+ * Return true when the string decodes to a valid 32-byte Solana public key.
+ * Uses PublicKey from @solana/web3.js — the canonical validator.
+ */
+function isValidSolanaAddress(value: unknown): boolean {
+  if (typeof value !== "string" || value.trim() === "") return false;
+  try {
+    new PublicKey(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Validate a raw (already-merged-with-defaults) config object.
@@ -81,6 +96,20 @@ export function validateConfig(raw: unknown): AgentConfig {
         new URL(r[field] as string);
       } catch {
         errors.push(`"${field}": must be a valid URL (got ${JSON.stringify(r[field])})`);
+      }
+    }
+  }
+
+  // ── Solana public key format ────────────────────────────────────
+  // creatorAddress and walletAddress must decode to a valid 32-byte pubkey.
+  // A plain non-empty-string check (above) passes typos like "abc" — this
+  // catches them before they cause cryptic errors during the first transfer.
+  for (const field of ["creatorAddress", "walletAddress"] as const) {
+    if (typeof r[field] === "string" && (r[field] as string).trim() !== "") {
+      if (!isValidSolanaAddress(r[field])) {
+        errors.push(
+          `"${field}": must be a valid base58 Solana public key (got ${JSON.stringify(r[field])})`,
+        );
       }
     }
   }

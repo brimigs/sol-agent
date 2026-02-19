@@ -1,5 +1,6 @@
 import readline from "readline";
 import chalk from "chalk";
+import { PublicKey } from "@solana/web3.js";
 
 let rl: readline.Interface | null = null;
 
@@ -66,14 +67,24 @@ export async function promptMultiline(label: string): Promise<string> {
 
 /**
  * Prompt for a Solana base58 public key address.
- * Validates that the input is a valid base58 string (32-44 chars, base58 alphabet).
+ * Uses PublicKey from @solana/web3.js to fully decode and validate the input —
+ * this rejects any string that isn't valid base58 or doesn't decode to exactly
+ * 32 bytes, catching typos that a regex length check would silently accept.
  */
 export async function promptSolanaAddress(label: string): Promise<string> {
-  const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
   while (true) {
     const value = await ask(chalk.white(`  → ${label}: `));
-    if (base58Regex.test(value)) return value;
-    console.log(chalk.yellow("  Invalid Solana address. Must be a base58 public key (32-44 chars)."));
+    try {
+      new PublicKey(value);
+      return value;
+    } catch {
+      console.log(
+        chalk.yellow(
+          `  Invalid Solana address. Expected a base58-encoded ed25519 public key (32 bytes). ` +
+            `Got ${value.length} chars — check for typos.`,
+        ),
+      );
+    }
   }
 }
 

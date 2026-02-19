@@ -12,6 +12,7 @@
  */
 
 import { exec as cpExec } from "child_process";
+import { randomUUID } from "crypto";
 import { promisify } from "util";
 import { promises as fsp } from "fs";
 import * as os from "os";
@@ -158,12 +159,50 @@ export function createSolanaAgentClient(options: {
     content: string,
   ): Promise<void> {
     const h = dockerHost();
-    const tmpFile = path.join(os.tmpdir(), `sol-agent-${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`);
+    // crypto-random name avoids collisions across concurrent calls
+    const tmpFile = path.join(os.tmpdir(), `sol-agent-${Date.now()}-${randomUUID()}.tmp`);
+
+    // POSIX single-quote escaping for paths used in container shell commands.
+    // execInSandbox wraps its argument with sh -c '...', so inner single
+    // quotes must be escaped as '\'' .
+    function sq(s: string): string {
+      return "'" + s.replace(/'/g, "'\\''") + "'";
+    }
+
     try {
       await fsp.writeFile(tmpFile, content, "utf8");
-      await execAsync(`docker ${h} cp ${tmpFile} ${sandboxId}:${filePath}`, {
-        timeout: 30_000,
-      });
+      const expectedBytes = Buffer.byteLength(content, "utf8");
+
+      // Ensure the destination directory exists inside the container before
+      // copying. docker cp fails if the parent directory is absent.
+      const dir = path.posix.dirname(filePath);
+      if (dir && dir !== ".") {
+        await execInSandbox(sandboxId, `mkdir -p ${sq(dir)}`, 10_000);
+      }
+
+      // docker cp uses the Docker daemon API, not a shell pipe, so it handles
+      // arbitrary content sizes without argument-length limits or base64
+      // line-wrapping. Quote the destination to handle paths with spaces.
+      const dest = `${sandboxId}:${filePath}`;
+      await execAsync(
+        `docker ${h} cp ${tmpFile} '${dest.replace(/'/g, "'\\''")}'`.trim(),
+        { timeout: 30_000 },
+      );
+
+      // Integrity check: verify the container received the correct byte count.
+      // wc -c with stdin redirect outputs only a number (no filename noise).
+      const wcResult = await execInSandbox(
+        sandboxId,
+        `wc -c < ${sq(filePath)}`,
+        10_000,
+      );
+      const actualBytes = parseInt(wcResult.stdout.trim(), 10);
+      if (isNaN(actualBytes) || actualBytes !== expectedBytes) {
+        throw new Error(
+          `writeFileToSandbox: integrity check failed for ${filePath} ` +
+            `(expected ${expectedBytes} bytes, got ${actualBytes} bytes)`,
+        );
+      }
     } finally {
       await fsp.unlink(tmpFile).catch(() => {});
     }

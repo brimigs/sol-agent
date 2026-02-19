@@ -334,6 +334,8 @@ export interface InferenceOptions {
   temperature?: number;
   tools?: InferenceToolDefinition[];
   stream?: boolean;
+  /** Per-request timeout in ms. Overrides the client-level default (120 000 ms). */
+  timeoutMs?: number;
 }
 
 export interface InferenceToolDefinition {

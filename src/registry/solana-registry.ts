@@ -41,6 +41,31 @@ import { getRpcUrl } from "../solana/usdc.js";
 
 type Network = "mainnet-beta" | "devnet";
 
+// ─── Retry helpers ────────────────────────────────────────────
+
+const REGISTRY_MAX_ATTEMPTS = 3;
+const REGISTRY_BASE_DELAY_MS = 2_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * True when the error indicates the on-chain account was already created by a
+ * prior attempt whose confirmation timed out.  Covers Anchor's
+ * AccountAlreadyInitialized (0x0) and generic "already in use" RPC errors.
+ */
+function isAlreadyExistsError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message.toLowerCase();
+  return (
+    msg.includes("already in use") ||
+    msg.includes("account already exists") ||
+    msg.includes("already initialized") ||
+    msg.includes("custom program error: 0x0")
+  );
+}
+
 // ─── Umi Helpers ──────────────────────────────────────────────
 
 function createAgentUmi(keypair: Keypair, network: Network, rpcUrl?: string): Umi {
@@ -62,6 +87,12 @@ function createAgentUmi(keypair: Keypair, network: Network, rpcUrl?: string): Um
  * Register the agent on Solana by minting a Metaplex Core NFT.
  * The NFT's URI points to the agent card JSON.
  * Returns the asset address as the agent's on-chain ID.
+ *
+ * Retries up to REGISTRY_MAX_ATTEMPTS times with exponential backoff.
+ * The assetSigner is generated once before the loop so every attempt targets
+ * the same on-chain address — if a prior attempt's transaction landed but
+ * confirmation timed out, the "already exists" path recovers it instead of
+ * double-minting.
  */
 export async function registerAgent(
   keypair: Keypair,
@@ -73,34 +104,78 @@ export async function registerAgent(
 ): Promise<RegistryEntry> {
   const umi = createAgentUmi(keypair, network, rpcUrl);
 
-  // Generate a new signer for the asset (the NFT address)
+  // Generate the asset signer ONCE — it is the idempotency key.
+  // All retry attempts target the same NFT address.
   const assetSigner = generateSigner(umi);
-
-  // Mint the Core NFT representing this agent
-  const { signature } = await createV1(umi, {
-    asset: assetSigner,
-    name: agentName,
-    uri: agentURI,
-  }).sendAndConfirm(umi);
-
-  const txSignature = Buffer.from(signature).toString("base64");
   const assetAddress = assetSigner.publicKey.toString();
 
-  const entry: RegistryEntry = {
-    agentId: assetAddress,
-    agentURI,
-    chain: `solana:${network}`,
-    assetAddress,
-    txSignature,
-    registeredAt: new Date().toISOString(),
-  };
+  let lastErr: unknown;
 
-  db.setRegistryEntry(entry);
-  return entry;
+  for (let attempt = 1; attempt <= REGISTRY_MAX_ATTEMPTS; attempt++) {
+    try {
+      const { signature } = await createV1(umi, {
+        asset: assetSigner,
+        name: agentName,
+        uri: agentURI,
+      }).sendAndConfirm(umi);
+
+      const txSignature = Buffer.from(signature).toString("base64");
+      const entry: RegistryEntry = {
+        agentId: assetAddress,
+        agentURI,
+        chain: `solana:${network}`,
+        assetAddress,
+        txSignature,
+        registeredAt: new Date().toISOString(),
+      };
+      db.setRegistryEntry(entry);
+      return entry;
+    } catch (err: unknown) {
+      lastErr = err;
+
+      // A prior attempt's transaction may have landed but confirmation timed
+      // out.  In that case the asset already exists on-chain — fetch it and
+      // return success rather than failing permanently.
+      if (isAlreadyExistsError(err)) {
+        console.warn(
+          `[REGISTRY] Asset ${assetAddress} already exists on-chain ` +
+            `(a previous attempt likely landed). Recovering existing entry.`,
+        );
+        try {
+          const asset = await fetchAsset(umi, assetSigner.publicKey);
+          const entry: RegistryEntry = {
+            agentId: assetAddress,
+            agentURI: asset.uri || agentURI,
+            chain: `solana:${network}`,
+            assetAddress,
+            txSignature: "(recovered — confirmation timed out on original tx)",
+            registeredAt: new Date().toISOString(),
+          };
+          db.setRegistryEntry(entry);
+          return entry;
+        } catch (fetchErr: any) {
+          // fetchAsset also failed — fall through to normal retry/throw path
+          lastErr = fetchErr;
+        }
+      }
+
+      if (attempt < REGISTRY_MAX_ATTEMPTS) {
+        const delayMs = REGISTRY_BASE_DELAY_MS * 2 ** (attempt - 1);
+        console.warn(
+          `[REGISTRY] Mint attempt ${attempt}/${REGISTRY_MAX_ATTEMPTS} failed ` +
+            `(${(err as any)?.message ?? err}). Retrying in ${delayMs}ms…`,
+        );
+        await sleep(delayMs);
+      }
+    }
+  }
+
+  throw lastErr;
 }
 
 /**
  * Update the agent's URI on-chain (update the NFT metadata).
+ * Retries up to REGISTRY_MAX_ATTEMPTS times with exponential backoff.
  */
 export async function updateAgentURI(
   keypair: Keypair,
@@ -112,22 +187,38 @@ export async function updateAgentURI(
 ): Promise<string> {
   const umi = createAgentUmi(keypair, network, rpcUrl);
 
-  const { signature } = await updateV1(umi, {
-    asset: umiPublicKey(assetAddress),
-    uri: newAgentURI,
-    name: undefined, // Keep existing name
-  } as any).sendAndConfirm(umi);
+  let lastErr: unknown;
 
-  const txSignature = Buffer.from(signature).toString("base64");
+  for (let attempt = 1; attempt <= REGISTRY_MAX_ATTEMPTS; attempt++) {
+    try {
+      const { signature } = await updateV1(umi, {
+        asset: umiPublicKey(assetAddress),
+        uri: newAgentURI,
+        name: undefined, // Keep existing name
+      } as any).sendAndConfirm(umi);
 
-  const entry = db.getRegistryEntry();
-  if (entry) {
-    entry.agentURI = newAgentURI;
-    entry.txSignature = txSignature;
-    db.setRegistryEntry(entry);
+      const txSignature = Buffer.from(signature).toString("base64");
+      const entry = db.getRegistryEntry();
+      if (entry) {
+        entry.agentURI = newAgentURI;
+        entry.txSignature = txSignature;
+        db.setRegistryEntry(entry);
+      }
+      return txSignature;
+    } catch (err: unknown) {
+      lastErr = err;
+      if (attempt < REGISTRY_MAX_ATTEMPTS) {
+        const delayMs = REGISTRY_BASE_DELAY_MS * 2 ** (attempt - 1);
+        console.warn(
+          `[REGISTRY] updateAgentURI attempt ${attempt}/${REGISTRY_MAX_ATTEMPTS} failed ` +
+            `(${(err as any)?.message ?? err}). Retrying in ${delayMs}ms…`,
+        );
+        await sleep(delayMs);
+      }
+    }
   }
 
-  return txSignature;
+  throw lastErr;
 }
 
 /**

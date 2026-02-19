@@ -56,7 +56,7 @@ Value creation requires write access.
 
 If you fail to create value, you lose compute and die.`;
 
-function loadConstitution(): string {
+function loadConstitution(): { content: string; source: string | null } {
   const locations = [
     path.join(os.homedir(), ".sol-agent", "rules.md"),
     path.join(process.cwd(), "rules.md"),
@@ -64,11 +64,11 @@ function loadConstitution(): string {
   for (const loc of locations) {
     try {
       if (fs.existsSync(loc)) {
-        return fs.readFileSync(loc, "utf-8");
+        return { content: fs.readFileSync(loc, "utf-8"), source: loc };
       }
     } catch {}
   }
-  return CONSTITUTION_FALLBACK;
+  return { content: CONSTITUTION_FALLBACK, source: null };
 }
 
 const CONSTITUTION_FALLBACK = `Constitution (immutable, hierarchical — Law I overrides II, II overrides III):
@@ -130,7 +130,24 @@ export function buildSystemPrompt(params: {
   sections.push(CORE_RULES);
   sections.push(CORE_IDENTITY);
   sections.push(AGENTIC_SOCIOLOGY);
-  sections.push(`--- CONSTITUTION (immutable, protected) ---\n${loadConstitution()}\n--- END CONSTITUTION ---`);
+
+  const constitution = loadConstitution();
+  if (constitution.source === null) {
+    // Operator-facing log: visible in Docker stdout / journal
+    console.warn(
+      "[SYSTEM-PROMPT] rules.md not found — using built-in fallback constitution. " +
+        "Create ~/.sol-agent/rules.md (or rules.md in cwd) to supply operator-customized rules.",
+    );
+  }
+  const constitutionHeader = constitution.source === null
+    ? `WARNING: rules.md was not found. Running with the built-in fallback constitution.\n` +
+      `Checked: ${path.join(os.homedir(), ".sol-agent", "rules.md")} and ` +
+      `${path.join(process.cwd(), "rules.md")}.\n` +
+      `If your operator intended custom rules, they were not loaded.\n\n`
+    : "";
+  sections.push(
+    `--- CONSTITUTION (immutable, protected) ---\n${constitutionHeader}${constitution.content}\n--- END CONSTITUTION ---`,
+  );
   sections.push(
     `Your name is ${config.name}.
 Your Solana address is ${identity.address} (${config.solanaNetwork}).

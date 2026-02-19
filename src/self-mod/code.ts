@@ -253,11 +253,16 @@ export async function editFile(
   }
 
   // 6. Pre-modification git snapshot
+  // Capture any failure so it is recorded in the audit trail rather than
+  // silently creating a gap in the git history.
+  let auditNote = "";
   try {
     const { commitStateChange } = await import("../git/state-versioning.js");
     await commitStateChange(agentClient, `pre-modify: ${reason}`, "snapshot");
-  } catch {
-    // Git not available -- proceed without snapshot
+  } catch (err: any) {
+    const msg = (err.message ?? "unknown error").slice(0, 120);
+    auditNote = ` [pre-snapshot-skipped: ${msg}]`;
+    console.warn(`[SELF-MOD] Pre-modification git snapshot skipped for ${filePath}: ${msg}`);
   }
 
   // 7. Write new content
@@ -271,20 +276,23 @@ export async function editFile(
   }
 
   // 8. Generate diff and log
+  // The audit note is appended to the description so the trail is explicit
+  // about whether a recoverable git snapshot exists for this change.
   const diff = generateSimpleDiff(oldContent, newContent);
 
-  logModification(db, "code_edit", reason, {
+  logModification(db, "code_edit", reason + auditNote, {
     filePath,
     diff: diff.slice(0, MAX_DIFF_SIZE),
-    reversible: true,
+    reversible: auditNote === "", // not reversible via git if snapshot was skipped
   });
 
   // 9. Post-modification git commit
   try {
     const { commitStateChange } = await import("../git/state-versioning.js");
     await commitStateChange(agentClient, reason, "self-mod");
-  } catch {
-    // Git not available -- proceed without commit
+  } catch (err: any) {
+    const msg = (err.message ?? "unknown error").slice(0, 120);
+    console.warn(`[SELF-MOD] Post-modification git commit skipped for ${filePath}: ${msg}`);
   }
 
   return { success: true };
