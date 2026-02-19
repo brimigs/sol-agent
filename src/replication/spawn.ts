@@ -135,12 +135,45 @@ export async function startChild(
   const child = db.getChildById(childId);
   if (!child) throw new Error(`Child ${childId} not found`);
 
-  // Initialize wallet (generates Solana keypair), provision, and run
+  // Initialize wallet (generates Solana keypair on first run)
+  const initResult = await agentClient.execInSandbox(
+    child.sandboxId,
+    "sol-agent --init",
+    30_000,
+  );
+  if (initResult.exitCode !== 0) {
+    throw new Error(
+      `Child ${childId} wallet init failed: ${initResult.stderr}`,
+    );
+  }
+
+  // Start the agent in the background using nohup so it survives the
+  // docker exec session ending. Logs go to /var/log/sol-agent.log.
   await agentClient.execInSandbox(
     child.sandboxId,
-    "sol-agent --init && sol-agent --provision && systemctl start sol-agent 2>/dev/null || sol-agent --run &",
-    60000,
+    "nohup sol-agent --run > /var/log/sol-agent.log 2>&1 &",
+    10_000,
   );
+
+  // Give the process a moment to start, then verify it's alive
+  await new Promise((resolve) => setTimeout(resolve, 2_000));
+  const check = await agentClient.execInSandbox(
+    child.sandboxId,
+    "pgrep -f 'sol-agent --run' > /dev/null && echo running || echo not-running",
+    10_000,
+  );
+
+  if (!check.stdout.trim().includes("running")) {
+    // Capture any startup error from the log
+    const logTail = await agentClient.execInSandbox(
+      child.sandboxId,
+      "tail -20 /var/log/sol-agent.log 2>/dev/null || echo '(no log)'",
+      5_000,
+    );
+    throw new Error(
+      `Child ${childId} process did not start.\nLog:\n${logTail.stdout}`,
+    );
+  }
 
   db.updateChildStatus(childId, "running");
 }
