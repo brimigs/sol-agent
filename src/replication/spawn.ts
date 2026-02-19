@@ -96,18 +96,18 @@ export async function spawnChild(
   const constitutionPath = pathLib.join(
     process.env.HOME || "/root",
     ".sol-agent",
-    "constitution.md",
+    "rules.md",
   );
   try {
     const constitution = fs.readFileSync(constitutionPath, "utf-8");
     await writeInChildSandbox(
       agentClient,
       sandbox.id,
-      "/root/.sol-agent/constitution.md",
+      "/root/.sol-agent/rules.md",
       constitution,
     );
     // Make it read-only in the child
-    await agentClient.execInSandbox(sandbox.id, "chmod 444 /root/.sol-agent/constitution.md", 5000);
+    await agentClient.execInSandbox(sandbox.id, "chmod 444 /root/.sol-agent/rules.md", 5000);
   } catch {
     // Constitution file not found locally — child will get it from the repo on build
   }

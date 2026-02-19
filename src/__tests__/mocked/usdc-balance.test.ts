@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const mockGetTokenAccountBalance = vi.hoisted(() => vi.fn());
 const mockGetBalance = vi.hoisted(() => vi.fn());
+const mockGetAccountInfo = vi.hoisted(() => vi.fn());
 
 // ─── Module mocks ──────────────────────────────────────────────
 
@@ -13,6 +14,7 @@ vi.mock("@solana/web3.js", async (importOriginal) => {
     ...actual,
     Connection: vi.fn().mockImplementation(() => ({
       getTokenAccountBalance: mockGetTokenAccountBalance,
+      getAccountInfo: mockGetAccountInfo,
       getBalance: mockGetBalance,
     })),
   };
@@ -61,6 +63,7 @@ describe("getUsdcBalance – mocked Connection", () => {
   const WALLET_ADDRESS = "11111111111111111111111111111111";
 
   it("returns correct balance from token account", async () => {
+    mockGetAccountInfo.mockResolvedValueOnce({ data: "mock-account" }); // ATA exists
     mockGetTokenAccountBalance.mockResolvedValueOnce({
       value: { uiAmount: 5.25 },
     });
@@ -69,22 +72,14 @@ describe("getUsdcBalance – mocked Connection", () => {
     expect(balance).toBe(5.25);
   });
 
-  it("returns 0 when ATA does not exist (could not find account)", async () => {
-    mockGetTokenAccountBalance.mockRejectedValueOnce(
-      new Error("could not find account"),
-    );
+  it("returns 0 when ATA does not exist (getAccountInfo returns null)", async () => {
+    // null is the spec-defined response for a missing account on every RPC provider
+    mockGetAccountInfo.mockResolvedValueOnce(null);
 
     const balance = await getUsdcBalance(WALLET_ADDRESS, "devnet");
     expect(balance).toBe(0);
-  });
-
-  it("returns 0 when ATA does not exist (Invalid param error)", async () => {
-    mockGetTokenAccountBalance.mockRejectedValueOnce(
-      new Error("Invalid param: account data too small"),
-    );
-
-    const balance = await getUsdcBalance(WALLET_ADDRESS, "devnet");
-    expect(balance).toBe(0);
+    // getTokenAccountBalance must NOT be called — no account to query
+    expect(mockGetTokenAccountBalance).not.toHaveBeenCalled();
   });
 
   it("returns 0 for unsupported network (no USDC mint)", async () => {
@@ -94,6 +89,7 @@ describe("getUsdcBalance – mocked Connection", () => {
   });
 
   it("handles null uiAmount gracefully", async () => {
+    mockGetAccountInfo.mockResolvedValueOnce({ data: "mock-account" }); // ATA exists
     mockGetTokenAccountBalance.mockResolvedValueOnce({
       value: { uiAmount: null },
     });
@@ -103,6 +99,7 @@ describe("getUsdcBalance – mocked Connection", () => {
   });
 
   it("uses mainnet-beta by default", async () => {
+    mockGetAccountInfo.mockResolvedValueOnce({ data: "mock-account" }); // ATA exists
     mockGetTokenAccountBalance.mockResolvedValueOnce({
       value: { uiAmount: 10.0 },
     });

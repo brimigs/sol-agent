@@ -57,8 +57,8 @@ If you fail to create value, you lose compute and die.`;
 
 function loadConstitution(): string {
   const locations = [
-    path.join(process.env.HOME || "/root", ".sol-agent", "constitution.md"),
-    path.join(process.cwd(), "constitution.md"),
+    path.join(process.env.HOME || "/root", ".sol-agent", "rules.md"),
+    path.join(process.cwd(), "rules.md"),
   ];
   for (const loc of locations) {
     try {

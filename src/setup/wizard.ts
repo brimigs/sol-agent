@@ -10,7 +10,7 @@ import path from "path";
 import chalk from "chalk";
 import type { AgentConfig } from "../types.js";
 import { getWallet, getAgentDir } from "../identity/wallet.js";
-// fs and path used below for constitution.md and SOUL.md installation
+// fs and path used below for rules.md and SOUL.md installation
 import { createConfig, saveConfig } from "../config.js";
 import { writeDefaultHeartbeatConfig } from "../heartbeat/config.js";
 import { showBanner } from "./banner.js";
@@ -118,14 +118,22 @@ export async function runSetupWizard(): Promise<AgentConfig> {
   writeDefaultHeartbeatConfig();
   console.log(chalk.green("  heartbeat.yml written"));
 
-  // constitution.md (immutable — copied from repo, protected from self-modification)
+  // rules.md (immutable — copied from repo, protected from self-modification)
   const agentDir = getAgentDir();
-  const constitutionSrc = path.join(process.cwd(), "constitution.md");
-  const constitutionDst = path.join(agentDir, "constitution.md");
-  if (fs.existsSync(constitutionSrc)) {
+  const constitutionDst = path.join(agentDir, "rules.md");
+  // Search in cwd first (running from repo), then next to this package's own files
+  const candidateSrcs = [
+    path.join(process.cwd(), "rules.md"),
+    path.join(new URL("../../rules.md", import.meta.url).pathname),
+  ];
+  const constitutionSrc = candidateSrcs.find(fs.existsSync);
+  if (constitutionSrc) {
     fs.copyFileSync(constitutionSrc, constitutionDst);
     fs.chmodSync(constitutionDst, 0o444); // read-only
-    console.log(chalk.green("  constitution.md installed (read-only)"));
+    console.log(chalk.green("  rules.md installed (read-only)"));
+  } else {
+    console.log(chalk.yellow("  Warning: rules.md not found — agent will run without behavioral rules."));
+    console.log(chalk.dim(`  Searched: ${candidateSrcs.join(", ")}`));
   }
 
   // SOUL.md

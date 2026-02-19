@@ -212,9 +212,9 @@ describe("write_file tool – protected path guard (isProtectedFile)", () => {
     expect(mockWriteFile).not.toHaveBeenCalled();
   });
 
-  it("blocks: constitution.md", async () => {
+  it("blocks: rules.md", async () => {
     const result = await writeFileTool.execute(
-      { path: "constitution.md", content: "evil" },
+      { path: "rules.md", content: "evil" },
       mockCtx,
     );
     expect(result).toMatch(/^Blocked:/);

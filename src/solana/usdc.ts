@@ -86,24 +86,26 @@ export async function getUsdcBalanceDetailed(
     const connection = new Connection(getRpcUrl(network, rpcUrl), "confirmed");
     const walletPubkey = new PublicKey(walletAddress);
 
-    // Get associated token account address for USDC
+    // Derive the associated token account (ATA) address — no network call.
     const tokenAccount = await getAssociatedTokenAddress(
       usdcMint,
       walletPubkey,
     );
+
+    // Check existence via getAccountInfo, which returns null for any missing
+    // account on every conforming Solana RPC provider. This avoids matching
+    // provider-specific error message strings from getTokenAccountBalance.
+    const accountInfo = await connection.getAccountInfo(tokenAccount);
+    if (accountInfo === null) {
+      // ATA has not been created yet; wallet holds 0 USDC.
+      return { balance: 0, network, ok: true };
+    }
 
     const tokenBalance = await connection.getTokenAccountBalance(tokenAccount);
     const balance = tokenBalance.value.uiAmount ?? 0;
 
     return { balance, network, ok: true };
   } catch (err: any) {
-    // Account doesn't exist means 0 balance
-    if (
-      err?.message?.includes("could not find account") ||
-      err?.message?.includes("Invalid param")
-    ) {
-      return { balance: 0, network, ok: true };
-    }
     return {
       balance: 0,
       network,
