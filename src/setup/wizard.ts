@@ -57,7 +57,7 @@ export async function runSetupWizard(): Promise<AgentConfig> {
   const genesisPrompt = await promptMultiline("Enter the genesis prompt (system prompt) for your agent.");
   console.log(chalk.green(`  Genesis prompt set (${genesisPrompt.length} chars)\n`));
 
-  const creatorAddress = await promptSolanaAddress("Your Solana wallet address (base58 pubkey)");
+  const creatorAddress = await promptSolanaAddress("Your personal Solana wallet address — identifies you as the creator (base58 pubkey)");
   console.log(chalk.green(`  Creator: ${creatorAddress}\n`));
 
   // ─── 3. Solana network selection ──────────────────────────────
