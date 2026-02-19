@@ -30,7 +30,7 @@ export async function runSetupWizard(): Promise<AgentConfig> {
   console.log(chalk.white("  First-run setup. Let's bring your sol-agent to life.\n"));
 
   // ─── 1. Generate Solana wallet ────────────────────────────────
-  console.log(chalk.cyan("  [1/7] Generating Solana identity (ed25519 keypair)..."));
+  console.log(chalk.cyan("  [1/6] Generating Solana identity (ed25519 keypair)..."));
   const { keypair, isNew } = await getWallet();
   const address = keypair.publicKey.toBase58();
   if (isNew) {
@@ -46,6 +46,14 @@ export async function runSetupWizard(): Promise<AgentConfig> {
   const name = await promptRequired("What do you want to name your agent?");
   console.log(chalk.green(`  Name: ${name}\n`));
 
+  console.log(chalk.dim("  Examples:"));
+  console.log(chalk.dim('  • "You are a dev-tools agent. Answer coding questions posted to your'));
+  console.log(chalk.dim('    inbox and charge 0.05 USDC per answer via x402."'));
+  console.log(chalk.dim('  • "You are a research agent. Monitor Solana DeFi protocols daily,'));
+  console.log(chalk.dim('    post summaries on-chain, and earn tips from subscribers."'));
+  console.log(chalk.dim('  • "You are a creative writing agent. Generate short stories on request'));
+  console.log(chalk.dim('    and charge 0.10 USDC per story."'));
+  console.log("");
   const genesisPrompt = await promptMultiline("Enter the genesis prompt (system prompt) for your agent.");
   console.log(chalk.green(`  Genesis prompt set (${genesisPrompt.length} chars)\n`));
 
@@ -68,7 +76,10 @@ export async function runSetupWizard(): Promise<AgentConfig> {
   console.log(chalk.green(`  RPC: ${solanaRpcUrl}\n`));
 
   // ─── 4. Inference provider keys ───────────────────────────────
-  console.log(chalk.white("  Inference provider keys (at least one required)."));
+  console.log(chalk.cyan("  [4/6] Inference provider keys\n"));
+  console.log(chalk.white("  Your agent needs at least one API key to run inference."));
+  console.log(chalk.dim("  Default model: claude-sonnet-4-6 — add an Anthropic key to use it."));
+  console.log(chalk.dim("  To use OpenAI models (gpt-4o, o1, etc.), add an OpenAI key instead.\n"));
   const openaiApiKey = await promptOptional("OpenAI API key (sk-..., optional)");
   if (openaiApiKey && !openaiApiKey.startsWith("sk-")) {
     console.log(chalk.yellow("  Warning: OpenAI keys usually start with sk-. Saving anyway."));
