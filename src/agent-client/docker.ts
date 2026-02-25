@@ -11,7 +11,7 @@
  * Domain management and credit transfers are not available.
  */
 
-import { exec as cpExec } from "child_process";
+import { exec as cpExec, execFile as cpExecFile } from "child_process";
 import { randomUUID } from "crypto";
 import { promisify } from "util";
 import { promises as fsp } from "fs";
@@ -33,7 +33,18 @@ import type {
 } from "../types.js";
 
 const execAsync = promisify(cpExec);
+const execFileAsync = promisify(cpExecFile);
 const DOCKER_LABEL = "sol-agent-child=true";
+
+/** Docker container IDs / names: alphanumeric, dash, underscore only. */
+const SANDBOX_ID_RE = /^[a-zA-Z0-9_-]+$/;
+
+function validateSandboxId(sandboxId: string): string | null {
+  if (!SANDBOX_ID_RE.test(sandboxId)) {
+    return `Invalid sandbox ID "${sandboxId}": must be alphanumeric, dash, or underscore only`;
+  }
+  return null;
+}
 
 /**
  * Verify that the Docker daemon is reachable before the agent starts.
@@ -74,6 +85,12 @@ export function createSolanaAgentClient(options: {
   function dockerHost(): string {
     const sock = options.dockerSocketPath || process.env.DOCKER_HOST;
     return sock ? `-H unix://${sock}` : "";
+  }
+
+  /** Returns ["-H", "unix:///path"] args for execFile, or [] if no custom socket. */
+  function dockerHostArgs(): string[] {
+    const sock = options.dockerSocketPath || process.env.DOCKER_HOST;
+    return sock ? ["-H", `unix://${sock}`] : [];
   }
 
   // ─── Own-container operations (child_process + fs) ────────────
@@ -129,8 +146,9 @@ export function createSolanaAgentClient(options: {
   }
 
   async function deleteSandbox(sandboxId: string): Promise<void> {
-    const h = dockerHost();
-    await execAsync(`docker ${h} stop ${sandboxId}`, { timeout: 30_000 });
+    const validationError = validateSandboxId(sandboxId);
+    if (validationError) throw new Error(validationError);
+    await execFileAsync("docker", [...dockerHostArgs(), "stop", sandboxId], { timeout: 30_000 });
   }
 
   async function execInSandbox(
@@ -138,11 +156,15 @@ export function createSolanaAgentClient(options: {
     command: string,
     timeout = 30_000,
   ): Promise<ExecResult> {
-    const h = dockerHost();
-    const escaped = command.replace(/'/g, "'\\''");
-    const cmd = `docker ${h} exec ${sandboxId} sh -c '${escaped}'`;
+    // Validate sandboxId to prevent flag injection into the docker CLI.
+    // execFile avoids shell interpretation of the command string itself.
+    const validationError = validateSandboxId(sandboxId);
+    if (validationError) {
+      return { stdout: "", stderr: validationError, exitCode: 1 };
+    }
+    const args = [...dockerHostArgs(), "exec", sandboxId, "sh", "-c", command];
     try {
-      const { stdout, stderr } = await execAsync(cmd, { timeout });
+      const { stdout, stderr } = await execFileAsync("docker", args, { timeout });
       return { stdout, stderr, exitCode: 0 };
     } catch (err: any) {
       return {
@@ -158,7 +180,15 @@ export function createSolanaAgentClient(options: {
     filePath: string,
     content: string,
   ): Promise<void> {
-    const h = dockerHost();
+    const validationError = validateSandboxId(sandboxId);
+    if (validationError) throw new Error(validationError);
+
+    // Reject filePaths that contain null bytes or newlines — these cannot be
+    // valid container paths and would break the docker cp destination argument.
+    if (filePath.includes("\0") || filePath.includes("\n") || filePath.includes("\r")) {
+      throw new Error(`writeFileToSandbox: filePath contains illegal characters: ${JSON.stringify(filePath)}`);
+    }
+
     // crypto-random name avoids collisions across concurrent calls
     const tmpFile = path.join(os.tmpdir(), `sol-agent-${Date.now()}-${randomUUID()}.tmp`);
 
@@ -180,14 +210,11 @@ export function createSolanaAgentClient(options: {
         await execInSandbox(sandboxId, `mkdir -p ${sq(dir)}`, 10_000);
       }
 
-      // docker cp uses the Docker daemon API, not a shell pipe, so it handles
-      // arbitrary content sizes without argument-length limits or base64
-      // line-wrapping. Quote the destination to handle paths with spaces.
-      const dest = `${sandboxId}:${filePath}`;
-      await execAsync(
-        `docker ${h} cp ${tmpFile} '${dest.replace(/'/g, "'\\''")}'`.trim(),
-        { timeout: 30_000 },
-      );
+      // docker cp uses the Docker daemon API (not a shell), so passing the
+      // destination as a positional argument to execFileAsync avoids any shell
+      // interpretation of special characters in filePath.
+      const destSpec = `${sandboxId}:${filePath}`;
+      await execFileAsync("docker", [...dockerHostArgs(), "cp", tmpFile, destSpec], { timeout: 30_000 });
 
       // Integrity check: verify the container received the correct byte count.
       // wc -c with stdin redirect outputs only a number (no filename noise).

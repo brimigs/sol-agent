@@ -187,7 +187,6 @@ async function run(): Promise<void> {
     keypair,
     creatorAddress: config.creatorAddress,
     sandboxId,
-    apiKey: "",
     createdAt: new Date().toISOString(),
   };
 

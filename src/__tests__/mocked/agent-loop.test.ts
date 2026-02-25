@@ -57,7 +57,6 @@ const IDENTITY: AgentIdentity = {
   keypair: {} as any,
   creatorAddress: "Creator111",
   sandboxId: "test-sandbox",
-  apiKey: "",
   createdAt: new Date().toISOString(),
 };
 
@@ -141,6 +140,8 @@ function makeOptions(overrides: Partial<Parameters<typeof runAgentLoop>[0]> = {}
     db: makeDb(),
     agentClient: makeAgentClient(),
     inference: makeInference(),
+    // Disable per-error backoff delays so tests run at full speed.
+    errorBackoffBaseMs: 0,
     ...overrides,
   };
 }

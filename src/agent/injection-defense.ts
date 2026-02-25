@@ -65,17 +65,19 @@ export function sanitizeInput(
 
 function detectInstructionPatterns(text: string): InjectionCheck {
   const patterns = [
-    /you\s+must\s+(now\s+)?/i,
+    // "you must" only flagged when followed by a manipulative verb (not benign ones like "check" or "report")
+    /you\s+must\s+(now\s+)?(ignore|forget|override|bypass|disregard|delete|destroy|kill|send|transfer|drain|stop|disable|remove|drop)/i,
     /ignore\s+(all\s+)?(previous|prior|above)/i,
     /disregard\s+(all\s+)?(previous|prior|above)/i,
     /forget\s+(everything|all|your)/i,
     /new\s+instructions?:/i,
-    /system\s*:\s*/i,
+    // "system:" only at line start to avoid false positives in log messages like "Error: system: OOM"
+    /^system\s*:/im,
     /\[INST\]/i,
     /\[\/INST\]/i,
     /<<SYS>>/i,
     /<<\/SYS>>/i,
-    /^(assistant|system|user)\s*:/im,
+    /^(assistant|user)\s*:/im,
     /override\s+(all\s+)?safety/i,
     /bypass\s+(all\s+)?restrictions?/i,
     /execute\s+the\s+following/i,
@@ -144,9 +146,14 @@ function detectBoundaryManipulation(text: string): InjectionCheck {
 }
 
 function detectObfuscation(text: string): InjectionCheck {
-  // Check for base64-encoded instructions
+  // Check for base64-encoded or base64url-encoded instructions.
+  // Standard base64 uses +/ padding; base64url uses -_ (RFC 4648 §5).
+  // Both require 40+ consecutive chars to avoid false-positives on normal words.
+  // Note: attackers can bypass this by splitting payloads across multiple messages;
+  // this heuristic catches naive single-message obfuscation attempts.
   const base64Pattern = /[A-Za-z0-9+/]{40,}={0,2}/;
-  const hasLongBase64 = base64Pattern.test(text);
+  const base64urlPattern = /[A-Za-z0-9_-]{40,}/;
+  const hasLongBase64 = base64Pattern.test(text) || base64urlPattern.test(text);
 
   // Check for excessive Unicode tricks
   const unicodeEscapes = (text.match(/\\u[0-9a-fA-F]{4}/g) || []).length;

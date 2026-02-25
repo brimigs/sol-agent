@@ -15,8 +15,7 @@ export interface AgentIdentity {
   publicKey: PublicKey;
   keypair: Keypair;
   creatorAddress: string; // base58 Solana pubkey
-  sandboxId: string;
-  apiKey: string;
+  sandboxId: string; // Docker container hostname (used as self-identification for sandbox guard)
   createdAt: string;
 }
 
@@ -26,9 +25,7 @@ export interface WalletData {
 }
 
 export interface ProvisionResult {
-  apiKey: string;
   walletAddress: string;
-  keyPrefix: string;
 }
 
 // ─── Configuration ───────────────────────────────────────────────
@@ -230,10 +227,10 @@ export interface FinancialState {
 export type SurvivalTier = "normal" | "low_compute" | "critical" | "dead";
 
 export const SURVIVAL_THRESHOLDS = {
-  normal: 50,      // > $0.50 in credits cents
-  low_compute: 10, // $0.10 - $0.50
-  critical: 10,    // < $0.10
-  dead: 0,
+  normal: 50,      // > $0.50: full operation
+  low_compute: 10, // > $0.10 and <= $0.50: switch to cheaper model
+  dead: 0,         // <= $0.00: cannot run — wait for funding
+  // "critical" tier = 0 < credits <= low_compute (handled implicitly by getSurvivalTier)
 } as const;
 
 export interface Transaction {

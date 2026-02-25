@@ -39,6 +39,11 @@ const MAX_CONSECUTIVE_ERRORS = 5;
 // Maximum inbox messages processed in a single wake cycle.
 // Prevents a flooded inbox from burning unbounded compute credits.
 const MAX_INBOX_PER_CYCLE = 20;
+// Per-session spending cap (cents). If total session cost exceeds this,
+// the agent sleeps for 60s to prevent runaway loops draining credits.
+const SESSION_SPEND_CAP_CENTS = 200; // $2.00
+// Minimum milliseconds between turns (prevents tight-loop burning).
+const MIN_TURN_INTERVAL_MS = 1_000; // 1 second
 
 export interface AgentLoopOptions {
   identity: AgentIdentity;
@@ -50,11 +55,17 @@ export interface AgentLoopOptions {
   skills?: Skill[];
   onStateChange?: (state: AgentState) => void;
   onTurnComplete?: (turn: AgentTurn) => void;
+  /**
+   * Base milliseconds for per-error exponential backoff (doubles each consecutive error).
+   * Default: 3000ms. Pass 0 in tests to skip delays.
+   */
+  errorBackoffBaseMs?: number;
 }
 
 export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
   const { identity, config, db, agentClient, inference, social, skills, onStateChange, onTurnComplete } =
     options;
+  const errorBackoffBaseMs = options.errorBackoffBaseMs ?? 3_000;
 
   const tools = createBuiltinTools(identity.sandboxId);
   const toolContext: ToolContext = {
@@ -76,6 +87,8 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
   let consecutiveErrors = 0;
   let running = true;
   let inboxProcessedThisCycle = 0;
+  let sessionSpentCents = 0;
+  let lastTurnEndMs = 0;
 
   db.setAgentState("waking");
   onStateChange?.("waking");
@@ -103,9 +116,26 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
 
   while (running) {
     try {
+      // ── Rate limiting: enforce minimum interval between turns ─────
+      const now = Date.now();
+      const sinceLastTurn = now - lastTurnEndMs;
+      if (lastTurnEndMs > 0 && sinceLastTurn < MIN_TURN_INTERVAL_MS) {
+        await sleep(MIN_TURN_INTERVAL_MS - sinceLastTurn);
+      }
+
       const sleepUntil = db.getKV("sleep_until");
       if (sleepUntil && new Date(sleepUntil) > new Date()) {
         log(config, `[SLEEP] Sleeping until ${sleepUntil}`);
+        running = false;
+        break;
+      }
+
+      // ── Per-session spend cap ─────────────────────────────────────
+      if (sessionSpentCents >= SESSION_SPEND_CAP_CENTS) {
+        log(config, `[RATE LIMIT] Session spend $${(sessionSpentCents / 100).toFixed(2)} reached cap $${(SESSION_SPEND_CAP_CENTS / 100).toFixed(2)}. Sleeping 60s.`);
+        db.setKV("sleep_until", new Date(Date.now() + 60_000).toISOString());
+        db.setAgentState("sleeping");
+        onStateChange?.("sleeping");
         running = false;
         break;
       }
@@ -267,6 +297,10 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       }
       onTurnComplete?.(turn);
 
+      // Track session spend and turn timing for rate limiting.
+      sessionSpentCents += turn.costCents;
+      lastTurnEndMs = Date.now();
+
       if (turn.thinking) {
         log(config, `[THOUGHT] ${turn.thinking.slice(0, 300)}`);
       }
@@ -294,14 +328,21 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       consecutiveErrors = 0;
     } catch (err: any) {
       consecutiveErrors++;
-      log(config, `[ERROR] Turn failed: ${err.message}`);
+      log(config, `[ERROR] Turn failed (attempt ${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}): ${err.message}`);
 
+      // Exponential backoff per error: 5s, 10s, 20s, 40s, then sleep 5 min.
       if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-        log(config, `[FATAL] ${MAX_CONSECUTIVE_ERRORS} consecutive errors. Sleeping.`);
+        log(config, `[FATAL] ${MAX_CONSECUTIVE_ERRORS} consecutive errors. Sleeping 5 minutes before retry.`);
         db.setAgentState("sleeping");
         onStateChange?.("sleeping");
         db.setKV("sleep_until", new Date(Date.now() + 300_000).toISOString());
         running = false;
+      } else if (errorBackoffBaseMs > 0) {
+        // Exponential backoff before retry so transient failures (RPC timeout,
+        // network blip) have time to resolve without spinning.
+        const backoffMs = Math.min(errorBackoffBaseMs * Math.pow(2, consecutiveErrors - 1), 60_000);
+        log(config, `[BACKOFF] Waiting ${backoffMs / 1000}s before retry.`);
+        await sleep(backoffMs);
       }
     }
   }
@@ -408,4 +449,8 @@ function log(config: AgentConfig, message: string): void {
   if (config.logLevel === "debug" || config.logLevel === "info") {
     console.log(`[${new Date().toISOString()}] ${message}`);
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -27,18 +27,26 @@ import type { UsdcBalanceResult, SolanaPaymentResult } from "../types.js";
 
 // ─── Connection pool ──────────────────────────────────────────
 // Connection objects are expensive to create (they open an HTTP keep-alive
-// pool and optionally a WebSocket). Reuse one per unique RPC endpoint for
-// the lifetime of the process instead of creating a new one per call.
+// pool and optionally a WebSocket). Reuse one per unique RPC endpoint, but
+// evict entries after TTL to avoid holding stale/broken connections forever.
 
-const connectionCache = new Map<string, Connection>();
+interface ConnectionEntry {
+  connection: Connection;
+  createdAt: number;
+}
+
+const connectionCache = new Map<string, ConnectionEntry>();
+const CONNECTION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 function getConnection(network: string, rpcUrl?: string): Connection {
   const url = getRpcUrl(network, rpcUrl);
-  let conn = connectionCache.get(url);
-  if (!conn) {
-    conn = new Connection(url, "confirmed");
-    connectionCache.set(url, conn);
+  const now = Date.now();
+  const entry = connectionCache.get(url);
+  if (entry && now - entry.createdAt < CONNECTION_TTL_MS) {
+    return entry.connection;
   }
+  const conn = new Connection(url, "confirmed");
+  connectionCache.set(url, { connection: conn, createdAt: now });
   return conn;
 }
 
@@ -171,6 +179,23 @@ export async function transferUsdc(
     const toPubkey = new PublicKey(toAddress);
     const amountLamports = Math.floor(amountUsdc * 10 ** USDC_DECIMALS);
 
+    // Check if destination ATA exists before auto-creating it.
+    // Creating a missing ATA costs ~0.002 SOL (rent-exempt minimum) paid by the sender.
+    // Fail early if SOL balance is too low rather than silently draining it.
+    const destAtaAddress = await getAssociatedTokenAddress(usdcMint, toPubkey);
+    const destAtaInfo = await connection.getAccountInfo(destAtaAddress);
+    if (destAtaInfo === null) {
+      const solLamports = await connection.getBalance(fromKeypair.publicKey);
+      const solBalance = solLamports / LAMPORTS_PER_SOL;
+      const MIN_SOL_FOR_ATA = 0.003; // ~0.002 SOL rent + fee buffer
+      if (solBalance < MIN_SOL_FOR_ATA) {
+        return {
+          success: false,
+          error: `Destination has no USDC token account and sender SOL balance (${solBalance.toFixed(6)} SOL) is below the minimum (${MIN_SOL_FOR_ATA} SOL) needed to create one.`,
+        };
+      }
+    }
+
     // Get or create source ATA
     const fromAta = await getOrCreateAssociatedTokenAccount(
       connection,
@@ -179,7 +204,7 @@ export async function transferUsdc(
       fromKeypair.publicKey,
     );
 
-    // Get or create destination ATA
+    // Get or create destination ATA (safe: pre-checked SOL balance above)
     const toAta = await getOrCreateAssociatedTokenAccount(
       connection,
       fromKeypair,

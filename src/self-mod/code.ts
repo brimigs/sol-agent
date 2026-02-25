@@ -59,6 +59,15 @@ const PROTECTED_FILES: readonly string[] = Object.freeze([
   // Tool guard definitions
   "agent/tools.ts",
   "agent/tools.js",
+  // Agent loop — controls survival state transitions and error handling
+  "agent/loop.ts",
+  "agent/loop.js",
+  // Survival tier logic — determines low_compute/critical/dead thresholds
+  "agent-client/credits.ts",
+  "agent-client/credits.js",
+  // NOTE: "types.ts", "index.ts", "config.ts" are intentionally NOT listed here
+  // because those filenames are too generic — matching any /foo/index.ts would be
+  // over-broad. Those files are protected through file-permission hardening instead.
 ]);
 
 /**
@@ -177,10 +186,18 @@ export function isProtectedFile(filePath: string): boolean {
  * Check if the modification rate limit has been exceeded.
  */
 function isRateLimited(db: AgentDatabase): boolean {
+  // getRecentModifications(N) returns at most N entries, oldest-first.
   const recentMods = db.getRecentModifications(MAX_MODIFICATIONS_PER_HOUR);
+
+  // If the DB returned fewer than N rows there can't be N modifications in
+  // the past hour — return early.  NOTE: this MUST be strict `<`, not `<=`.
+  // With `<=`, exactly N entries would skip the timestamp check and return
+  // false (not rate-limited), which would be wrong.
   if (recentMods.length < MAX_MODIFICATIONS_PER_HOUR) return false;
 
-  // Check if the oldest is within the last hour
+  // We have at least MAX_MODIFICATIONS_PER_HOUR entries. Check whether the
+  // oldest of those N entries is still within the past hour.  If it is, all
+  // N entries are recent → rate limited.
   const oldest = recentMods[0];
   if (!oldest) return false;
 

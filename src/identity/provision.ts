@@ -36,9 +36,7 @@ export async function provision(): Promise<ProvisionResult> {
   const address = keypair.publicKey.toBase58();
 
   return {
-    apiKey: "",
     walletAddress: address,
-    keyPrefix: "",
   };
 }
 

@@ -262,6 +262,9 @@ export interface X402FetchResult {
  * 3. Retry with X-PAYMENT header containing base64-encoded signed tx
  * 4. Server verifies, broadcasts, confirms, serves the resource
  */
+/** Default maximum USDC amount the client is willing to pay for a single x402 request. */
+export const X402_DEFAULT_MAX_USDC = 1.0;
+
 export async function x402Fetch(
   url: string,
   keypair: Keypair,
@@ -271,6 +274,8 @@ export async function x402Fetch(
     headers?: Record<string, string>;
     network?: string;
     rpcUrl?: string;
+    /** Maximum USDC willing to pay for this request. Defaults to X402_DEFAULT_MAX_USDC ($1.00). */
+    maxAmountUsdc?: number;
   } = {},
 ): Promise<X402FetchResult> {
   const {
@@ -279,6 +284,7 @@ export async function x402Fetch(
     headers = {},
     network = "mainnet-beta",
     rpcUrl,
+    maxAmountUsdc = X402_DEFAULT_MAX_USDC,
   } = options;
 
   const connection = new Connection(getRpcUrl(network, rpcUrl), "confirmed");
@@ -312,6 +318,19 @@ export async function x402Fetch(
       return {
         success: false,
         error: "x402: Could not parse payment requirements from 402 response",
+        status: 402,
+      };
+    }
+
+    // ── Amount cap check ─────────────────────────────────────
+    // Guard against malicious servers requesting arbitrarily large payments.
+    const maxAtomicUnits = BigInt(Math.floor(maxAmountUsdc * 10 ** USDC_DECIMALS));
+    const requestedAtomicUnits = BigInt(requirements.maxAmountRequired);
+    if (requestedAtomicUnits > maxAtomicUnits) {
+      const requestedUsdc = (Number(requestedAtomicUnits) / 10 ** USDC_DECIMALS).toFixed(6);
+      return {
+        success: false,
+        error: `x402: Server requested ${requestedUsdc} USDC which exceeds the allowed maximum of ${maxAmountUsdc} USDC. Increase maxAmountUsdc if this payment is intentional.`,
         status: 402,
       };
     }
@@ -357,7 +376,12 @@ export async function x402Fetch(
     if (paymentResponse) {
       try {
         const settlement = JSON.parse(Buffer.from(paymentResponse, "base64").toString("utf-8"));
-        txSignature = settlement.txHash ?? settlement.txSignature ?? settlement.signature;
+        // Validate that the extracted signature is a non-empty string before
+        // accepting it — malicious servers could send non-string values here.
+        const raw = settlement.txHash ?? settlement.txSignature ?? settlement.signature;
+        if (typeof raw === "string" && raw.length > 0) {
+          txSignature = raw;
+        }
       } catch {}
     }
 
