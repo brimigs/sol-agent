@@ -38,6 +38,8 @@ export interface AgentConfig {
   openaiApiKey?: string;
   anthropicApiKey?: string;
   inferenceModel: string;
+  /** Model used in low-compute / critical survival mode. Defaults to DEFAULT_LOW_COMPUTE_MODEL. */
+  lowComputeModel?: string;
   maxTokensPerTurn: number;
   heartbeatConfigPath: string;
   dbPath: string;
@@ -144,7 +146,8 @@ export type ToolCategory =
   | "git"
   | "registry"
   | "replication"
-  | "solana";
+  | "solana"
+  | "social";
 
 export interface ToolContext {
   identity: AgentIdentity;

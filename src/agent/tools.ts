@@ -26,6 +26,7 @@ import { selfModTools } from "./tool-defs/self-mod.js";
 import { survivalTools } from "./tool-defs/survival.js";
 import { skillsTools } from "./tool-defs/skills.js";
 import { registryTools } from "./tool-defs/registry-replication.js";
+import { socialTools } from "./tool-defs/social.js";
 
 // ─── Self-Preservation Guard ───────────────────────────────────
 
@@ -95,6 +96,7 @@ export function createBuiltinTools(sandboxId: string): AgentTool[] {
     ...survivalTools(),
     ...skillsTools(),
     ...registryTools(),
+    ...socialTools(),
   ];
 }
 

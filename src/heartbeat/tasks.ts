@@ -252,4 +252,64 @@ export const BUILTIN_TASKS: Record<string, HeartbeatTaskFn> = {
     ctx.db.setKV("last_health_check", new Date().toISOString());
     return { shouldWake: false };
   },
+
+  /**
+   * Check on all known child agents. For each non-dead child:
+   * - Verify their Docker container is still running
+   * - Check their USDC balance
+   * - Mark as dead if container is gone
+   * - Wake parent if a child drops below minimum funding
+   */
+  check_children: async (ctx) => {
+    const children = ctx.db.getChildren().filter((c) => c.status !== "dead");
+    if (children.length === 0) return { shouldWake: false };
+
+    const alerts: string[] = [];
+
+    for (const child of children) {
+      try {
+        // Check if child container is still running
+        const result = await ctx.agentClient.execInSandbox(
+          child.sandboxId,
+          "echo alive",
+          5_000,
+        );
+
+        if (result.exitCode !== 0 || result.stderr.includes("No such container")) {
+          ctx.db.updateChildStatus(child.id, "dead");
+          alerts.push(`Child ${child.name} (${child.sandboxId}) container is gone — marked dead`);
+          continue;
+        }
+
+        // Check child's USDC balance
+        const childBalance = await getUsdcBalance(
+          child.address,
+          ctx.config.solanaNetwork,
+          ctx.config.solanaRpcUrl,
+        ).catch(() => -1);
+
+        ctx.db.updateChildStatus(child.id, "running");
+
+        if (childBalance >= 0 && childBalance < 0.10) {
+          alerts.push(
+            `Child ${child.name} has low USDC (${childBalance.toFixed(4)} USDC). Consider topping up ${child.address}.`,
+          );
+        }
+      } catch (err: any) {
+        // Non-fatal — log but don't mark dead on transient errors
+        alerts.push(`check_children: error checking ${child.name}: ${err.message}`);
+      }
+    }
+
+    ctx.db.setKV("last_children_check", new Date().toISOString());
+
+    if (alerts.length > 0) {
+      return {
+        shouldWake: true,
+        message: alerts.join(" | "),
+      };
+    }
+
+    return { shouldWake: false };
+  },
 };

@@ -119,6 +119,7 @@ export function validateConfig(raw: unknown): AgentConfig {
     "creatorMessage",
     "openaiApiKey",
     "anthropicApiKey",
+    "lowComputeModel",
     "agentId",
     "parentAddress",
     "socialRelayUrl",

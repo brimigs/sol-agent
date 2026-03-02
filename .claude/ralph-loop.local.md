@@ -3,7 +3,7 @@ active: true
 iteration: 1
 max_iterations: 0
 completion_promise: null
-started_at: "2026-02-25T16:47:00Z"
+started_at: "2026-03-02T14:15:01Z"
 ---
 
-review all 12 issues listed above and create a fix for each of them
+review all the feedback above. come up with a plan to best implpement it. iterate on this project until all feedback has been properly addressed and fixed
